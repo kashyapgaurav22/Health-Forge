@@ -155,15 +155,15 @@ router.post('/verify', authMiddleware, async (req, res) => {
     const subtotal = Math.round(totalAmount / 1.18);
     const gstAmount = totalAmount - subtotal;
 
-      // Send Email Receipt
-      await sendOrderReceipt(req.user.email, {
+      // Send Email Receipt (Asynchronously in background so user doesn't wait)
+      sendOrderReceipt(req.user.email, {
         order_id: razorpay_order_id,
         status: 'paid',
         items: orderItems.rows,
         subtotal: subtotal,
         gstAmount: gstAmount,
         totalAmount: totalAmount
-      });
+      }).catch(console.error);
     }
 
     res.json({
@@ -219,15 +219,15 @@ router.post('/create-manual-order', authMiddleware, async (req, res) => {
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
 
-    // Send Email Receipt with Bank Details
-    await sendOrderReceipt(req.user.email, {
+    // Send Email Receipt with Bank Details (Asynchronously)
+    sendOrderReceipt(req.user.email, {
       order_id: `MANUAL_${dbOrder.rows[0].id}`,
       status: 'manual_verification',
-      items: cartResult.rows, // we can use cart items because they haven't been wiped in memory
+      items: cartResult.rows, 
       subtotal: subtotal,
       gstAmount: gstAmount,
       totalAmount: totalAmount
-    });
+    }).catch(console.error);
 
     res.json({
       message: 'Order created for manual verification.',
