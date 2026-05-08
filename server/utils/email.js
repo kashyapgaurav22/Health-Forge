@@ -1,102 +1,147 @@
 const nodemailer = require('nodemailer');
+const PDFDocument = require('pdfkit');
 require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // Standard configuration for Gmail
+  service: 'gmail',
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
+const createInvoicePDF = (orderDetails) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers = [];
+
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      const isManual = orderDetails.status === 'manual_verification';
+
+      // Header
+      doc.fillColor('#0FCEDC')
+         .fontSize(24)
+         .text('Health Forge', { align: 'center' })
+         .moveDown();
+
+      doc.fillColor('#333333')
+         .fontSize(10)
+         .text('123 Surgical Avenue, Medical District', { align: 'center' })
+         .text('support@healthforge.com | +91 9876543210', { align: 'center' })
+         .moveDown(2);
+
+      // Invoice Details
+      doc.fontSize(16).text('INVOICE', { underline: true });
+      doc.fontSize(10)
+         .text(`Order ID: ${orderDetails.order_id}`, { continued: true })
+         .text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
+      doc.text(`Status: ${isManual ? 'Pending Bank Transfer Verification' : 'Paid Successfully'}`);
+      doc.moveDown(2);
+
+      // Table Header
+      const tableTop = doc.y;
+      doc.font('Helvetica-Bold');
+      doc.text('Item', 50, tableTop);
+      doc.text('Qty', 350, tableTop, { width: 50, align: 'center' });
+      doc.text('Price', 400, tableTop, { width: 80, align: 'right' });
+      doc.text('Total', 480, tableTop, { width: 70, align: 'right' });
+
+      doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+      doc.font('Helvetica');
+      
+      let currentY = tableTop + 25;
+
+      // Table Rows
+      orderDetails.items.forEach(item => {
+        const itemTotal = parseFloat(item.price) * item.quantity;
+        
+        doc.text(item.name, 50, currentY, { width: 280 });
+        doc.text(item.quantity.toString(), 350, currentY, { width: 50, align: 'center' });
+        doc.text(`Rs. ${parseFloat(item.price).toLocaleString('en-IN')}`, 400, currentY, { width: 80, align: 'right' });
+        doc.text(`Rs. ${itemTotal.toLocaleString('en-IN')}`, 480, currentY, { width: 70, align: 'right' });
+        
+        currentY += 20;
+      });
+
+      doc.moveTo(50, currentY).lineTo(550, currentY).stroke();
+      currentY += 15;
+
+      // Totals
+      doc.font('Helvetica-Bold');
+      doc.text('Subtotal:', 380, currentY, { width: 80, align: 'right' });
+      doc.text(`Rs. ${orderDetails.subtotal.toLocaleString('en-IN')}`, 480, currentY, { width: 70, align: 'right' });
+      currentY += 20;
+
+      doc.text('GST (18%):', 380, currentY, { width: 80, align: 'right' });
+      doc.text(`Rs. ${orderDetails.gstAmount.toLocaleString('en-IN')}`, 480, currentY, { width: 70, align: 'right' });
+      currentY += 20;
+
+      doc.fontSize(12).fillColor('#0FCEDC');
+      doc.text('Total Amount:', 380, currentY, { width: 80, align: 'right' });
+      doc.text(`Rs. ${orderDetails.totalAmount.toLocaleString('en-IN')}`, 480, currentY, { width: 70, align: 'right' });
+      
+      currentY += 40;
+      doc.fillColor('#333333').fontSize(10).font('Helvetica');
+
+      // Bank Details for Manual Orders
+      if (isManual) {
+        doc.rect(50, currentY, 500, 100).fillAndStroke('#fff3cd', '#ffc107');
+        doc.fillColor('#856404').font('Helvetica-Bold')
+           .text('Bank Transfer Instructions', 60, currentY + 10);
+        
+        doc.font('Helvetica').fontSize(9)
+           .text(`Please transfer exactly Rs. ${orderDetails.totalAmount.toLocaleString('en-IN')} to the following account:`, 60, currentY + 30)
+           .text('Account Name: Health Forge Surgicals', 60, currentY + 45)
+           .text('Account Number: 50200012345678', 60, currentY + 55)
+           .text('IFSC Code: HDFC0001234', 60, currentY + 65)
+           .text('Bank: HDFC Bank, Chandigarh Branch', 60, currentY + 75)
+           .text('Once transferred, your order will be verified and dispatched within 24 hours.', 60, currentY + 85);
+      }
+
+      // Footer
+      doc.fontSize(8).fillColor('gray')
+         .text('Thank you for your business!', 50, 700, { align: 'center', width: 500 });
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
 const sendOrderReceipt = async (userEmail, orderDetails) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn('⚠️ SMTP credentials missing. Skipping email receipt for order:', orderDetails.order_id);
+    console.warn('⚠️ SMTP credentials missing. Skipping PDF email receipt for order:', orderDetails.order_id);
     return;
   }
 
-  const isManual = orderDetails.status === 'manual_verification';
-  
-  // Create an HTML table of items
-  const itemsHtml = orderDetails.items.map(item => `
-    <tr>
-      <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.name}</td>
-      <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: center;">${item.quantity}</td>
-      <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">₹${parseFloat(item.price).toLocaleString('en-IN')}</td>
-      <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">₹${(parseFloat(item.price) * item.quantity).toLocaleString('en-IN')}</td>
-    </tr>
-  `).join('');
-
-  const htmlContent = `
-    <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-      <h2 style="color: #0FCEDC; text-align: center;">Health Forge</h2>
-      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
-        <h3 style="margin-top: 0;">Order Receipt</h3>
-        <p><strong>Order ID:</strong> ${orderDetails.order_id}</p>
-        <p><strong>Status:</strong> ${isManual ? 'Pending Bank Transfer Verification' : 'Paid Successfully'}</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
-          <thead>
-            <tr style="background-color: #e9ecef;">
-              <th style="padding: 10px; text-align: left;">Item</th>
-              <th style="padding: 10px; text-align: center;">Qty</th>
-              <th style="padding: 10px; text-align: right;">Price</th>
-              <th style="padding: 10px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Subtotal:</td>
-              <td style="padding: 10px; text-align: right;">₹${orderDetails.subtotal.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr>
-              <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">GST (18%):</td>
-              <td style="padding: 10px; text-align: right;">₹${orderDetails.gstAmount.toLocaleString('en-IN')}</td>
-            </tr>
-            <tr style="font-size: 1.1em; color: #0FCEDC;">
-              <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold;">Total Paid:</td>
-              <td style="padding: 10px; text-align: right; font-weight: bold;">₹${orderDetails.totalAmount.toLocaleString('en-IN')}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        ${isManual ? `
-          <div style="margin-top: 30px; padding: 15px; background-color: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
-            <h4 style="margin-top: 0; color: #856404;">Bank Transfer Instructions</h4>
-            <p>Please transfer exactly <strong>₹${orderDetails.totalAmount.toLocaleString('en-IN')}</strong> to the following account to begin processing your order:</p>
-            <ul style="list-style: none; padding-left: 0;">
-              <li><strong>Account Name:</strong> Health Forge Surgicals</li>
-              <li><strong>Account Number:</strong> 50200012345678</li>
-              <li><strong>IFSC Code:</strong> HDFC0001234</li>
-              <li><strong>Bank:</strong> HDFC Bank, Chandigarh Branch</li>
-            </ul>
-            <p style="margin-bottom: 0;">Once transferred, your order will be verified and dispatched within 24 hours.</p>
-          </div>
-        ` : `
-          <p style="margin-top: 30px; text-align: center; color: #28a745;">
-            ✅ Payment received securely. Your order will be dispatched shortly!
-          </p>
-        `}
-      </div>
-      <p style="text-align: center; font-size: 0.8em; color: #6c757d; margin-top: 20px;">
-        &copy; ${new Date().getFullYear()} Health Forge. All rights reserved.
-      </p>
-    </div>
-  `;
-
   try {
+    const pdfBuffer = await createInvoicePDF(orderDetails);
+    const isManual = orderDetails.status === 'manual_verification';
+
+    const textContent = isManual 
+      ? `Hello,\n\nThank you for your order with Health Forge!\n\nYour order #${orderDetails.order_id} has been received. Please find your detailed invoice and bank transfer instructions attached to this email as a PDF.\n\nOnce we receive the bank transfer, your order will be dispatched.\n\nBest regards,\nThe Health Forge Team`
+      : `Hello,\n\nThank you for your order with Health Forge!\n\nYour payment for order #${orderDetails.order_id} was successful. Please find your detailed PDF receipt attached to this email.\n\nYour order will be dispatched shortly.\n\nBest regards,\nThe Health Forge Team`;
+
     await transporter.sendMail({
       from: '"Health Forge" <' + process.env.SMTP_USER + '>',
       to: userEmail,
-      subject: `Order Receipt - ${orderDetails.order_id}`,
-      html: htmlContent,
+      subject: `Invoice - Health Forge Order ${orderDetails.order_id}`,
+      text: textContent,
+      attachments: [
+        {
+          filename: `HealthForge_Invoice_${orderDetails.order_id}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ]
     });
-    console.log('✅ Email receipt sent to:', userEmail);
+    console.log('✅ PDF invoice sent to:', userEmail);
   } catch (error) {
-    console.error('❌ Failed to send email receipt:', error);
+    console.error('❌ Failed to send PDF invoice:', error);
   }
 };
 
