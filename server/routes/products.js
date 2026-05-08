@@ -10,7 +10,7 @@ router.get('/categories', async (req, res) => {
     res.json({ categories: result.rows });
   } catch (error) {
     console.error('Get categories error:', error);
-    res.status(500).json({ message: 'Internal server error.' });
+    res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
 });
 
@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
     res.json({ products: result.rows });
   } catch (error) {
     console.error('Get products error:', error);
-    res.status(500).json({ message: 'Internal server error.' });
+    res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
 });
 
@@ -80,7 +80,7 @@ router.get('/:id', async (req, res) => {
     res.json({ product: result.rows[0] });
   } catch (error) {
     console.error('Get product error:', error);
-    res.status(500).json({ message: 'Internal server error.' });
+    res.status(500).json({ message: 'Internal server error.', error: error.message });
   }
 });
 
