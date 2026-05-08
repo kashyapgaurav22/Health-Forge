@@ -46,44 +46,34 @@ app.get('/api/debug', (req, res) => {
 // Test Email Setup
 app.get('/api/test-email', async (req, res) => {
   try {
-    const nodemailer = require('nodemailer');
-    const dns = require('dns');
+    const { Resend } = require('resend');
     
-    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      return res.status(400).json({ error: 'SMTP variables are missing in Render Environment!' });
+    if (!process.env.RESEND_API_KEY) {
+      return res.status(400).json({ error: 'RESEND_API_KEY is missing in Render Environment!' });
     }
     
-    // Manually resolve Gmail SMTP to IPv4
-    const addresses = await dns.promises.resolve4('smtp.gmail.com');
-    const ipv4Address = addresses[0];
+    const resend = new Resend(process.env.RESEND_API_KEY);
     
-    const transporter = nodemailer.createTransport({
-      host: ipv4Address,
-      port: 465,
-      secure: true,
-      tls: { servername: 'smtp.gmail.com' },
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
+    // We send to an arbitrary email, or if they have a test one they can pass it as a query param.
+    // For free tier, they can ONLY send to the email they registered with Resend.
+    const testEmail = req.query.email || 'test@example.com';
 
-    await transporter.verify();
-    
-    await transporter.sendMail({
-      from: '"Health Forge Test" <' + process.env.SMTP_USER + '>',
-      to: process.env.SMTP_USER,
+    const { data, error } = await resend.emails.send({
+      from: 'Health Forge Test <onboarding@resend.dev>',
+      to: testEmail,
       subject: 'Health Forge Email Test Successful!',
-      text: 'If you are reading this, your Render email configuration is perfectly working!',
+      text: 'If you are reading this, your Render email configuration with Resend is perfectly working!',
     });
 
-    res.json({ success: true, message: 'Test email sent to ' + process.env.SMTP_USER, resolvedIp: ipv4Address });
+    if (error) {
+       return res.status(500).json({ success: false, error });
+    }
+
+    res.json({ success: true, message: `Test email sent! Response ID: ${data.id}`, note: "Remember, on Resend's free tier, you can only send emails to the exact email address you used to sign up for Resend." });
   } catch (error) {
     res.status(500).json({ 
       success: false, 
       error: error.message, 
-      response: error.response,
-      command: error.command
     });
   }
 });
