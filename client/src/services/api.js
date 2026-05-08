@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  baseURL: isProduction ? 'https://health-forge.onrender.com/api' : 'http://localhost:5000/api',
 });
 
 // Attach JWT token to every request
