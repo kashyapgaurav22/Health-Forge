@@ -125,7 +125,7 @@ router.post('/verify', authMiddleware, async (req, res) => {
           `UPDATE orders SET status = 'failed' WHERE razorpay_order_id = $1`,
           [razorpay_order_id]
         );
-        return res.status(400).json({ message: 'Payment verification failed.' });
+        return res.status(400).json({ message: `Signature mismatch. Expected: ${expectedSignature}, Got: ${razorpay_signature}. Secret length: ${process.env.RAZORPAY_KEY_SECRET.length}` });
       }
     }
 
@@ -172,7 +172,7 @@ router.post('/verify', authMiddleware, async (req, res) => {
     });
   } catch (error) {
     console.error('Verify payment error:', error);
-    res.status(500).json({ message: 'Payment verification failed.' });
+    res.status(500).json({ message: `Server error during verification: ${error.message}` });
   }
 });
 
