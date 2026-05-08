@@ -3,6 +3,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const pool = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const { sendOrderReceipt } = require('../utils/email');
 require('dotenv').config();
 
 const router = express.Router();
@@ -28,10 +29,12 @@ router.post('/create-order', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
-    // Calculate total
-    const totalAmount = cartResult.rows.reduce((sum, item) => {
+    // Calculate subtotal and GST
+    const subtotal = cartResult.rows.reduce((sum, item) => {
       return sum + parseFloat(item.price) * item.quantity;
     }, 0);
+    const gstAmount = Math.round(subtotal * 0.18);
+    const totalAmount = subtotal + gstAmount;
 
     // Create Razorpay order (amount in paise)
     let order;
@@ -126,15 +129,42 @@ router.post('/verify', authMiddleware, async (req, res) => {
       }
     }
 
-    // Update order status to paid
-    await pool.query(
+    // Update order status to paid and return the order details
+    const dbOrderQuery = await pool.query(
       `UPDATE orders SET status = 'paid', razorpay_payment_id = $1, razorpay_signature = $2
-       WHERE razorpay_order_id = $3`,
+       WHERE razorpay_order_id = $3
+       RETURNING id, total_amount`,
       [razorpay_payment_id, razorpay_signature, razorpay_order_id]
     );
 
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
+
+    if (dbOrderQuery.rows.length > 0) {
+      // Fetch order details for the email receipt
+      const orderItems = await pool.query(
+        `SELECT p.name, oi.quantity, oi.price 
+         FROM order_items oi
+         JOIN products p ON oi.product_id = p.id
+         WHERE oi.order_id = $1`,
+        [dbOrderQuery.rows[0].id]
+      );
+
+    const totalAmountStr = dbOrderQuery.rows[0].total_amount;
+    const totalAmount = parseFloat(totalAmountStr);
+    const subtotal = Math.round(totalAmount / 1.18);
+    const gstAmount = totalAmount - subtotal;
+
+      // Send Email Receipt
+      await sendOrderReceipt(req.user.email, {
+        order_id: razorpay_order_id,
+        status: 'paid',
+        items: orderItems.rows,
+        subtotal: subtotal,
+        gstAmount: gstAmount,
+        totalAmount: totalAmount
+      });
+    }
 
     res.json({
       message: 'Payment verified successfully.',
@@ -162,10 +192,12 @@ router.post('/create-manual-order', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
-    // Calculate total
-    const totalAmount = cartResult.rows.reduce((sum, item) => {
+    // Calculate subtotal and GST
+    const subtotal = cartResult.rows.reduce((sum, item) => {
       return sum + parseFloat(item.price) * item.quantity;
     }, 0);
+    const gstAmount = Math.round(subtotal * 0.18);
+    const totalAmount = subtotal + gstAmount;
 
     // Save order in database with manual verification status
     const dbOrder = await pool.query(
@@ -186,6 +218,16 @@ router.post('/create-manual-order', authMiddleware, async (req, res) => {
 
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
+
+    // Send Email Receipt with Bank Details
+    await sendOrderReceipt(req.user.email, {
+      order_id: `MANUAL_${dbOrder.rows[0].id}`,
+      status: 'manual_verification',
+      items: cartResult.rows, // we can use cart items because they haven't been wiped in memory
+      subtotal: subtotal,
+      gstAmount: gstAmount,
+      totalAmount: totalAmount
+    });
 
     res.json({
       message: 'Order created for manual verification.',

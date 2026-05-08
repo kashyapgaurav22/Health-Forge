@@ -14,19 +14,21 @@ const Checkout = () => {
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
 
-  const isOnlineAllowed = cartTotal < 100000;
-  const isManualAllowed = cartTotal >= 20000;
+  const gstAmount = Math.round(cartTotal * 0.18);
+  const finalTotal = cartTotal + gstAmount;
 
+  const isOnlineAllowed = finalTotal < 100000;
+  const isManualAllowed = finalTotal >= 20000;
 
   useEffect(() => {
-    if (cartTotal >= 100000) {
+    if (finalTotal >= 100000) {
       setPaymentMethod('manual');
-    } else if (cartTotal < 20000) {
+    } else if (finalTotal < 20000) {
       setPaymentMethod('online');
     } else {
       setPaymentMethod('manual'); // Bank transfer preferred for 20k-1L
     }
-  }, [cartTotal]);
+  }, [finalTotal]);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -187,7 +189,7 @@ const Checkout = () => {
                 />
                 <div className="method-info">
                   <span className="method-name">Online Payment</span>
-                  {cartTotal >= 100000 && <span className="method-note">Disabled for orders over ₹1L</span>}
+                  {finalTotal >= 100000 && <span className="method-note">Disabled for orders over ₹1L</span>}
                 </div>
               </label>
 
@@ -202,8 +204,8 @@ const Checkout = () => {
                 />
                 <div className="method-info">
                   <span className="method-name">Bank Transfer (NEFT/RTGS)</span>
-                  {cartTotal < 20000 && <span className="method-note">Available for orders above ₹20k</span>}
-                  {cartTotal >= 20000 && cartTotal < 100000 && <span className="method-note preferred">Preferred</span>}
+                  {finalTotal < 20000 && <span className="method-note">Available for orders above ₹20k</span>}
+                  {finalTotal >= 20000 && finalTotal < 100000 && <span className="method-note preferred">Preferred</span>}
                 </div>
               </label>
             </div>
@@ -218,13 +220,13 @@ const Checkout = () => {
               <span className="free-shipping">FREE</span>
             </div>
             <div className="summary-row">
-              <span>GST (Included)</span>
-              <span>₹{Math.round(cartTotal * 0.18).toLocaleString('en-IN')}</span>
+              <span>GST (18%)</span>
+              <span>₹{gstAmount.toLocaleString('en-IN')}</span>
             </div>
             <div className="summary-divider"></div>
             <div className="summary-row summary-total">
               <span>Total Amount</span>
-              <span>₹{cartTotal.toLocaleString('en-IN')}</span>
+              <span>₹{finalTotal.toLocaleString('en-IN')}</span>
             </div>
 
             <button
@@ -238,7 +240,7 @@ const Checkout = () => {
                 ? 'Processing...' 
                 : paymentMethod === 'manual' 
                   ? 'Request Invoice & Bank Details' 
-                  : `Pay ₹${cartTotal.toLocaleString('en-IN')}`}
+                  : `Pay ₹${finalTotal.toLocaleString('en-IN')}`}
             </button>
 
             <p className="secure-note">
