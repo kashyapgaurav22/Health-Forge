@@ -34,10 +34,9 @@ app.get('/', (req, res) => {
 // Debug
 app.get('/api/debug', (req, res) => {
   res.json({
-    hasDbUrl: !!process.env.DATABASE_URL,
-    dbUrlStart: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) : null,
-    hasJwt: !!process.env.JWT_SECRET,
-    hasRazorpay: !!process.env.RAZORPAY_KEY_ID
+    dbUrlLength: process.env.DATABASE_URL ? process.env.DATABASE_URL.length : 0,
+    keyId: process.env.RAZORPAY_KEY_ID ? `${process.env.RAZORPAY_KEY_ID.substring(0, 10)}... (Length: ${process.env.RAZORPAY_KEY_ID.length})` : 'Missing',
+    keySecretLength: process.env.RAZORPAY_KEY_SECRET ? process.env.RAZORPAY_KEY_SECRET.length : 0
   });
 });
 
