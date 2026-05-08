@@ -1,3 +1,6 @@
+// Force IPv4 globally - Render free tier doesn't support IPv6 outbound
+require('dns').setDefaultResultOrder('ipv4first');
+
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
