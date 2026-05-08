@@ -47,31 +47,37 @@ app.get('/api/debug', (req, res) => {
 app.get('/api/test-email', async (req, res) => {
   try {
     const nodemailer = require('nodemailer');
+    const dns = require('dns');
+    
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       return res.status(400).json({ error: 'SMTP variables are missing in Render Environment!' });
     }
     
+    // Manually resolve Gmail SMTP to IPv4
+    const addresses = await dns.promises.resolve4('smtp.gmail.com');
+    const ipv4Address = addresses[0];
+    
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: ipv4Address,
       port: 465,
       secure: true,
-      family: 4, // Force IPv4
+      tls: { servername: 'smtp.gmail.com' },
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
 
-    await transporter.verify(); // Test connection
+    await transporter.verify();
     
     await transporter.sendMail({
       from: '"Health Forge Test" <' + process.env.SMTP_USER + '>',
-      to: process.env.SMTP_USER, // Send to themselves
+      to: process.env.SMTP_USER,
       subject: 'Health Forge Email Test Successful!',
       text: 'If you are reading this, your Render email configuration is perfectly working!',
     });
 
-    res.json({ success: true, message: 'Test email successfully sent to ' + process.env.SMTP_USER });
+    res.json({ success: true, message: 'Test email sent to ' + process.env.SMTP_USER, resolvedIp: ipv4Address });
   } catch (error) {
     res.status(500).json({ 
       success: false, 

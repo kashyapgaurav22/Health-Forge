@@ -1,17 +1,22 @@
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
+const dns = require('dns');
 require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  family: 4, // Force IPv4 - fixes Render free tier IPv6 issue
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+// Create transporter with manual IPv4 resolution (Render doesn't support IPv6)
+const createTransporter = async () => {
+  const addresses = await dns.promises.resolve4('smtp.gmail.com');
+  return nodemailer.createTransport({
+    host: addresses[0],
+    port: 465,
+    secure: true,
+    tls: { servername: 'smtp.gmail.com' },
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+};
 
 const createInvoicePDF = (orderDetails) => {
   return new Promise((resolve, reject) => {
@@ -129,6 +134,7 @@ const sendOrderReceipt = async (userEmail, orderDetails) => {
       ? `Hello,\n\nThank you for your order with Health Forge!\n\nYour order #${orderDetails.order_id} has been received. Please find your detailed invoice and bank transfer instructions attached to this email as a PDF.\n\nOnce we receive the bank transfer, your order will be dispatched.\n\nBest regards,\nThe Health Forge Team`
       : `Hello,\n\nThank you for your order with Health Forge!\n\nYour payment for order #${orderDetails.order_id} was successful. Please find your detailed PDF receipt attached to this email.\n\nYour order will be dispatched shortly.\n\nBest regards,\nThe Health Forge Team`;
 
+    const transporter = await createTransporter();
     await transporter.sendMail({
       from: '"Health Forge" <' + process.env.SMTP_USER + '>',
       to: userEmail,
