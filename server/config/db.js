@@ -1,8 +1,11 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
 });
 
 pool.on('connect', () => {
@@ -11,7 +14,6 @@ pool.on('connect', () => {
 
 pool.on('error', (err) => {
   console.error('❌ PostgreSQL connection error:', err);
-  process.exit(1);
 });
 
 module.exports = pool;
