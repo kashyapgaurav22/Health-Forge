@@ -40,6 +40,42 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
+// Test Email Setup
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const nodemailer = require('nodemailer');
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return res.status(400).json({ error: 'SMTP variables are missing in Render Environment!' });
+    }
+    
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+
+    await transporter.verify(); // Test connection
+    
+    await transporter.sendMail({
+      from: '"Health Forge Test" <' + process.env.SMTP_USER + '>',
+      to: process.env.SMTP_USER, // Send to themselves
+      subject: 'Health Forge Email Test Successful!',
+      text: 'If you are reading this, your Render email configuration is perfectly working!',
+    });
+
+    res.json({ success: true, message: 'Test email successfully sent to ' + process.env.SMTP_USER });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message, 
+      response: error.response,
+      command: error.command
+    });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Health Forge API is running 🏥' });

@@ -140,30 +140,37 @@ router.post('/verify', authMiddleware, async (req, res) => {
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
 
+    // Fire email in background AFTER response - completely non-blocking
     if (dbOrderQuery.rows.length > 0) {
-      // Fetch order details for the email receipt
-      const orderItems = await pool.query(
-        `SELECT p.name, oi.quantity, oi.price 
-         FROM order_items oi
-         JOIN products p ON oi.product_id = p.id
-         WHERE oi.order_id = $1`,
-        [dbOrderQuery.rows[0].id]
-      );
+      const orderId = dbOrderQuery.rows[0].id;
+      const totalAmountStr = dbOrderQuery.rows[0].total_amount;
+      const userEmail = req.user.email;
 
-    const totalAmountStr = dbOrderQuery.rows[0].total_amount;
-    const totalAmount = parseFloat(totalAmountStr);
-    const subtotal = Math.round(totalAmount / 1.18);
-    const gstAmount = totalAmount - subtotal;
+      setImmediate(async () => {
+        try {
+          const orderItems = await pool.query(
+            `SELECT p.name, oi.quantity, oi.price 
+             FROM order_items oi
+             JOIN products p ON oi.product_id = p.id
+             WHERE oi.order_id = $1`,
+            [orderId]
+          );
+          const totalAmount = parseFloat(totalAmountStr);
+          const subtotal = Math.round(totalAmount / 1.18);
+          const gstAmount = totalAmount - subtotal;
 
-      // Send Email Receipt (Asynchronously in background so user doesn't wait)
-      sendOrderReceipt(req.user.email, {
-        order_id: razorpay_order_id,
-        status: 'paid',
-        items: orderItems.rows,
-        subtotal: subtotal,
-        gstAmount: gstAmount,
-        totalAmount: totalAmount
-      }).catch(console.error);
+          await sendOrderReceipt(userEmail, {
+            order_id: razorpay_order_id,
+            status: 'paid',
+            items: orderItems.rows,
+            subtotal,
+            gstAmount,
+            totalAmount
+          });
+        } catch (e) {
+          console.error('Background email error:', e);
+        }
+      });
     }
 
     res.json({
