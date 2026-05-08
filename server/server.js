@@ -31,6 +31,16 @@ app.get('/', (req, res) => {
   res.send('Health Forge API is live! 🏥 Use /api/health to check status.');
 });
 
+// Debug
+app.get('/api/debug', (req, res) => {
+  res.json({
+    hasDbUrl: !!process.env.DATABASE_URL,
+    dbUrlStart: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) : null,
+    hasJwt: !!process.env.JWT_SECRET,
+    hasRazorpay: !!process.env.RAZORPAY_KEY_ID
+  });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Health Forge API is running 🏥' });
