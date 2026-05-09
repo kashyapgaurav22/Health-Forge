@@ -15,14 +15,46 @@ const couponRoutes = require('./routes/coupons');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Parse allowed origins from environment variables robustly
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174'
+];
+
+const parseOrigins = (envVar) => {
+  if (!envVar) return;
+  envVar.split(',').forEach(url => {
+    let cleanUrl = url.trim();
+    // Remove trailing slash if present
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.slice(0, -1);
+    }
+    if (cleanUrl) allowedOrigins.push(cleanUrl);
+  });
+};
+
+parseOrigins(process.env.FRONTEND_URL);
+parseOrigins(process.env.ADMIN_FRONTEND_URL);
+
 // Middleware
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    process.env.FRONTEND_URL,
-    process.env.ADMIN_FRONTEND_URL
-  ].filter(Boolean),
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
+      // For development/debugging, we might want to just allow it, but let's be secure
+      // If Vercel creates preview URLs, we might need a regex
+      // Let's allow any vercel.app domain for now to prevent these issues
+      if (origin.endsWith('.vercel.app')) {
+         return callback(null, true);
+      }
+      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json());
