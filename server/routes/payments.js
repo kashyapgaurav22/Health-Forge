@@ -16,6 +16,7 @@ const razorpay = new Razorpay({
 // POST /api/payments/create-order — Create a Razorpay order from the user's cart
 router.post('/create-order', authMiddleware, async (req, res) => {
   try {
+    console.log('Creating order for user:', req.user.id);
     // Get cart items with prices
     const cartResult = await pool.query(
       `SELECT ci.quantity, p.price, p.name
@@ -25,14 +26,35 @@ router.post('/create-order', authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
+    console.log('Cart items found:', cartResult.rows.length);
+
     if (cartResult.rows.length === 0) {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
-    // Calculate subtotal and GST
-    const subtotal = cartResult.rows.reduce((sum, item) => {
+    const { couponCode } = req.body;
+
+    // Calculate base subtotal
+    let subtotal = cartResult.rows.reduce((sum, item) => {
       return sum + parseFloat(item.price) * item.quantity;
     }, 0);
+
+    let discountAmount = 0;
+
+    // Apply coupon if provided
+    if (couponCode) {
+      const couponResult = await pool.query(
+        `SELECT discount_percentage FROM coupons WHERE code = UPPER($1) AND is_active = true AND (expires_at IS NULL OR expires_at > NOW())`,
+        [couponCode]
+      );
+      if (couponResult.rows.length > 0) {
+        const discountPercentage = couponResult.rows[0].discount_percentage;
+        discountAmount = Math.round(subtotal * (discountPercentage / 100));
+        subtotal = subtotal - discountAmount;
+      }
+    }
+
+    // Calculate GST on discounted subtotal
     const gstAmount = Math.round(subtotal * 0.18);
     const totalAmount = subtotal + gstAmount;
 
@@ -186,6 +208,7 @@ router.post('/verify', authMiddleware, async (req, res) => {
 // POST /api/payments/create-manual-order — Create a manual bank transfer order
 router.post('/create-manual-order', authMiddleware, async (req, res) => {
   try {
+    console.log('Creating manual order for user:', req.user.id);
     // Get cart items with prices
     const cartResult = await pool.query(
       `SELECT ci.quantity, p.price, p.name, ci.product_id
@@ -195,14 +218,35 @@ router.post('/create-manual-order', authMiddleware, async (req, res) => {
       [req.user.id]
     );
 
+    console.log('Manual cart items found:', cartResult.rows.length);
+
     if (cartResult.rows.length === 0) {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
-    // Calculate subtotal and GST
-    const subtotal = cartResult.rows.reduce((sum, item) => {
+    const { couponCode } = req.body;
+
+    // Calculate base subtotal
+    let subtotal = cartResult.rows.reduce((sum, item) => {
       return sum + parseFloat(item.price) * item.quantity;
     }, 0);
+
+    let discountAmount = 0;
+
+    // Apply coupon if provided
+    if (couponCode) {
+      const couponResult = await pool.query(
+        `SELECT discount_percentage FROM coupons WHERE code = UPPER($1) AND is_active = true AND (expires_at IS NULL OR expires_at > NOW())`,
+        [couponCode]
+      );
+      if (couponResult.rows.length > 0) {
+        const discountPercentage = couponResult.rows[0].discount_percentage;
+        discountAmount = Math.round(subtotal * (discountPercentage / 100));
+        subtotal = subtotal - discountAmount;
+      }
+    }
+
+    // Calculate GST on discounted subtotal
     const gstAmount = Math.round(subtotal * 0.18);
     const totalAmount = subtotal + gstAmount;
 

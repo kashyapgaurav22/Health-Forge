@@ -1,0 +1,320 @@
+/* ===== Shared Admin Pages Styles ===== */
+
+/* Inputs */
+.admin-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1e293b;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.admin-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Labels */
+.admin-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+/* Form groups */
+.admin-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Loading state */
+.admin-loading-state {
+  text-align: center;
+  padding: 48px;
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+/* Modal styles */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.admin-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: modalIn 0.2s ease;
+}
+
+@keyframes modalIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.admin-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-modal-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.admin-modal-close {
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.admin-modal-close:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Status select dropdown */
+.status-select {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.2s;
+}
+
+.status-select:hover { opacity: 0.85; }
+
+/* Order ID badge */
+.order-id-badge {
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+/* Category badge */
+.category-badge {
+  background: #e0e7ff;
+  color: #4f46e5;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+/* Coupon code badge */
+.coupon-code-badge {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  background: #f0fdf4;
+  color: #16a34a;
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px dashed #86efac;
+}
+
+/* Status pill */
+.status-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Role card */
+.role-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  transition: box-shadow 0.2s;
+}
+
+.role-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.role-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.role-name {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.role-perms-count {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.role-perms-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.role-perm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+
+.role-perm-item.active {
+  color: #059669;
+  background: #f0fdf4;
+}
+
+.role-perm-item.inactive {
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+/* Permission toggle row */
+.permission-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.permission-toggle:hover {
+  border-color: #bfdbfe;
+  background: #f0f7ff;
+}
+
+.permission-toggle.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.permission-toggle-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: white;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+
+.permission-toggle.active .permission-toggle-checkbox,
+.permission-toggle-checkbox.checked {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.permission-label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.permission-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Detail labels */
+.detail-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.detail-value {
+  display: block;
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* CSV Upload label */
+.csv-upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f1f5f9;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #475569;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+
+.csv-upload-label:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { createOrder, verifyPayment, createManualOrder } from '../services/api';
@@ -8,27 +8,36 @@ import { FiLock, FiCreditCard } from 'react-icons/fi';
 import './Checkout.css';
 
 const Checkout = () => {
-  const { items, cartTotal, refreshCart } = useCart();
+  const { items, cartTotal, loading: cartLoading, refreshCart } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  const stateCoupon = location.state?.coupon || null;
+  const stateDiscount = location.state?.discountAmount || 0;
+  
   const [processing, setProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('online');
 
-  const gstAmount = Math.round(cartTotal * 0.18);
-  const finalTotal = cartTotal + gstAmount;
+  // Subtotal after coupon if any
+  const discountedSubtotal = cartTotal - stateDiscount;
+  const gstAmount = Math.round(discountedSubtotal * 0.18);
+  const finalTotal = discountedSubtotal + gstAmount;
 
   const isOnlineAllowed = finalTotal < 100000;
   const isManualAllowed = finalTotal >= 20000;
 
   useEffect(() => {
+    if (cartLoading) return;
+    
     if (finalTotal >= 100000) {
       setPaymentMethod('manual');
     } else if (finalTotal < 20000) {
       setPaymentMethod('online');
     } else {
-      setPaymentMethod('manual'); // Bank transfer preferred for 20k-1L
+      setPaymentMethod('manual'); 
     }
-  }, [finalTotal]);
+  }, [finalTotal, cartLoading]);
 
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
@@ -55,7 +64,7 @@ const Checkout = () => {
 
     if (paymentMethod === 'manual') {
       try {
-        const { data } = await createManualOrder();
+        const { data } = await createManualOrder({ couponCode: stateCoupon?.code });
         await refreshCart();
         toast.success('Order placed successfully!');
         navigate('/order-success', {
@@ -71,7 +80,7 @@ const Checkout = () => {
 
     try {
       // Create order on backend
-      const { data } = await createOrder();
+      const { data } = await createOrder({ couponCode: stateCoupon?.code });
 
       if (data.order_id && data.order_id.startsWith('order_dummy_')) {
         // Mock Razorpay flow for testing
