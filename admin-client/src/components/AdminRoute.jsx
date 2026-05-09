@@ -15,7 +15,13 @@ const AdminRoute = ({ requiredPermission }) => {
 
   // Must be staff (have at least one admin permission)
   if (!isStaff) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="flex-center" style={{ height: '100vh', flexDirection: 'column' }}>
+        <h2>Access Denied 🛑</h2>
+        <p>Your account does not have administrative privileges.</p>
+        <button className="btn btn-primary" onClick={() => window.location.href = '/'}>Go Back</button>
+      </div>
+    );
   }
 
   return <Outlet />;
