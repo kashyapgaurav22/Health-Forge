@@ -2,7 +2,8 @@ const { Resend } = require('resend');
 const PDFDocument = require('pdfkit');
 require('dotenv').config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend conditionally so it doesn't crash the server on startup if the key is missing in Render
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const createInvoicePDF = (orderDetails) => {
   return new Promise((resolve, reject) => {
