@@ -70,6 +70,17 @@ const initializeDatabase = async () => {
     
     console.log('✅ Admin user kashyapgaurav22@gmail.com created/updated with password admin123');
 
+    // 8. Add delivery columns to orders table
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_pin VARCHAR(6)`);
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS status_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+
+    // 9. Add advanced coupon fields
+    await pool.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_discount_amount NUMERIC(10,2)`);
+    await pool.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_order_amount NUMERIC(10,2) DEFAULT 0`);
+    await pool.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_uses INTEGER`);
+    await pool.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS per_user_limit INTEGER DEFAULT 1`);
+    await pool.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS usage_count INTEGER DEFAULT 0`);
+
     console.log('✅ Database schema initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);

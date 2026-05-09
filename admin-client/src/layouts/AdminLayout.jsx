@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiHome, FiTrendingUp, FiShoppingBag, FiBox, FiTag, FiUsers, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
+import { FiTrendingUp, FiShoppingBag, FiBox, FiTag, FiUsers, FiLogOut, FiMenu } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-
-import { STORE_URL } from '../config';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -12,10 +10,9 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    // Check if user is actually an admin
     if (user && user.role !== 'admin') {
       toast.error('Access denied. Admin privileges required.');
-      window.location.href = STORE_URL;
+      navigate('/login');
     }
   }, [user]);
 
@@ -23,7 +20,7 @@ export default function AdminLayout() {
 
   const handleLogout = () => {
     logout();
-    window.location.href = STORE_URL;
+    navigate('/login');
     toast.success('Logged out successfully');
   };
 
@@ -60,18 +57,6 @@ export default function AdminLayout() {
         </div>
 
         <nav style={{ flex: 1, padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-          <a 
-            href={STORE_URL}
-            style={{
-              display: 'flex', alignItems: 'center', padding: '12px 20px', color: '#94a3b8', textDecoration: 'none', gap: '15px'
-            }}
-          >
-            <FiHome size={20} style={{ minWidth: '20px' }}/>
-            {sidebarOpen && <span>View Store</span>}
-          </a>
-          
-          <div style={{ height: '1px', background: '#1e293b', margin: '10px 20px' }}></div>
-
           {navLinks.map((link) => (
             <NavLink 
               key={link.to}

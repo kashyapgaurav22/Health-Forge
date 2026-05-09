@@ -32,6 +32,19 @@ router.post('/create-order', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
+    // Validate stock availability
+    const stockCheck = await pool.query(
+      `SELECT ci.quantity as requested, p.stock as available, p.name
+       FROM cart_items ci
+       JOIN products p ON ci.product_id = p.id
+       WHERE ci.user_id = $1 AND p.stock < ci.quantity`,
+      [req.user.id]
+    );
+    if (stockCheck.rows.length > 0) {
+      const item = stockCheck.rows[0];
+      return res.status(400).json({ message: `Insufficient stock for "${item.name}". Available: ${item.available}, Requested: ${item.requested}` });
+    }
+
     const { couponCode } = req.body;
 
     // Calculate base subtotal
@@ -162,6 +175,16 @@ router.post('/verify', authMiddleware, async (req, res) => {
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
 
+    // Decrease stock for all items in this order
+    if (dbOrderQuery.rows.length > 0) {
+      const orderId = dbOrderQuery.rows[0].id;
+      await pool.query(`
+        UPDATE products p SET stock = p.stock - oi.quantity
+        FROM order_items oi
+        WHERE oi.product_id = p.id AND oi.order_id = $1
+      `, [orderId]);
+    }
+
     // Fire email in background AFTER response - completely non-blocking
     if (dbOrderQuery.rows.length > 0) {
       const orderId = dbOrderQuery.rows[0].id;
@@ -269,6 +292,13 @@ router.post('/create-manual-order', authMiddleware, async (req, res) => {
 
     // Clear the user's cart
     await pool.query('DELETE FROM cart_items WHERE user_id = $1', [req.user.id]);
+
+    // Decrease stock for all items in this order
+    await pool.query(`
+      UPDATE products p SET stock = p.stock - oi.quantity
+      FROM order_items oi
+      WHERE oi.product_id = p.id AND oi.order_id = $1
+    `, [dbOrder.rows[0].id]);
 
     // Send Email Receipt with Bank Details (Asynchronously)
     sendOrderReceipt(req.user.email, {

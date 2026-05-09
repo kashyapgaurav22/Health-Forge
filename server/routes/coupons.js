@@ -70,16 +70,16 @@ router.get('/', checkPermission('manage_coupons'), async (req, res) => {
 // POST /api/coupons
 router.post('/', checkPermission('manage_coupons'), async (req, res) => {
   try {
-    const { code, discount_percentage, is_active, expires_at } = req.body;
+    const { code, discount_percentage, is_active, expires_at, max_discount_amount, min_order_amount, max_uses, per_user_limit } = req.body;
     
     if (!code || !discount_percentage) {
       return res.status(400).json({ message: 'Code and discount percentage are required' });
     }
 
     await pool.query(
-      `INSERT INTO coupons (code, discount_percentage, is_active, expires_at)
-       VALUES (UPPER($1), $2, $3, $4)`,
-      [code, discount_percentage, is_active !== false, expires_at || null]
+      `INSERT INTO coupons (code, discount_percentage, is_active, expires_at, max_discount_amount, min_order_amount, max_uses, per_user_limit)
+       VALUES (UPPER($1), $2, $3, $4, $5, $6, $7, $8)`,
+      [code, discount_percentage, is_active !== false, expires_at || null, max_discount_amount || null, min_order_amount || 0, max_uses || null, per_user_limit || 1]
     );
     
     res.status(201).json({ message: 'Coupon created successfully' });
@@ -92,16 +92,38 @@ router.post('/', checkPermission('manage_coupons'), async (req, res) => {
   }
 });
 
-// PUT /api/coupons/:id
+// PUT /api/coupons/:id — Full edit support
 router.put('/:id', checkPermission('manage_coupons'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { is_active } = req.body;
+    const { code, discount_percentage, is_active, expires_at, max_discount_amount, min_order_amount, max_uses, per_user_limit } = req.body;
     
-    await pool.query('UPDATE coupons SET is_active = $1 WHERE id = $2', [is_active, id]);
+    // If only is_active is provided (toggle), do a simple update
+    if (Object.keys(req.body).length === 1 && 'is_active' in req.body) {
+      await pool.query('UPDATE coupons SET is_active = $1 WHERE id = $2', [is_active, id]);
+      return res.json({ message: 'Coupon toggled successfully' });
+    }
+
+    // Full update
+    await pool.query(
+      `UPDATE coupons SET 
+        code = COALESCE(UPPER($1), code),
+        discount_percentage = COALESCE($2, discount_percentage),
+        is_active = COALESCE($3, is_active),
+        expires_at = $4,
+        max_discount_amount = $5,
+        min_order_amount = COALESCE($6, 0),
+        max_uses = $7,
+        per_user_limit = COALESCE($8, 1)
+      WHERE id = $9`,
+      [code, discount_percentage, is_active, expires_at || null, max_discount_amount || null, min_order_amount || 0, max_uses || null, per_user_limit || 1, id]
+    );
     res.json({ message: 'Coupon updated successfully' });
   } catch (error) {
     console.error('Update coupon error:', error);
+    if (error.code === '23505') {
+      return res.status(409).json({ message: 'Coupon code already exists' });
+    }
     res.status(500).json({ message: 'Internal server error' });
   }
 });

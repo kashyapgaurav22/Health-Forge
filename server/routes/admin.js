@@ -21,19 +21,60 @@ router.use(authMiddleware);
 // ==========================================
 router.get('/analytics', checkPermission('view_analytics'), async (req, res) => {
   try {
-    const totalRevenueQuery = await pool.query("SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid'");
-    const totalOrdersQuery = await pool.query("SELECT COUNT(*) as count FROM orders");
-    const activeOrdersQuery = await pool.query("SELECT COUNT(*) as count FROM orders WHERE status != 'delivered' AND status != 'failed'");
+    const period = req.query.period || 'all'; // today, 7d, 30d, all
+    
+    // Build date filter
+    let dateFilter = '';
+    let dateFilterRevenue = '';
+    if (period === 'today') {
+      dateFilter = "AND o.created_at >= CURRENT_DATE";
+      dateFilterRevenue = "AND created_at >= CURRENT_DATE";
+    } else if (period === '7d') {
+      dateFilter = "AND o.created_at >= CURRENT_DATE - INTERVAL '7 days'";
+      dateFilterRevenue = "AND created_at >= CURRENT_DATE - INTERVAL '7 days'";
+    } else if (period === '30d') {
+      dateFilter = "AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'";
+      dateFilterRevenue = "AND created_at >= CURRENT_DATE - INTERVAL '30 days'";
+    }
+
+    const totalRevenueQuery = await pool.query(`SELECT COALESCE(SUM(total_amount), 0) as total FROM orders WHERE status = 'paid' ${dateFilterRevenue}`);
+    const totalOrdersQuery = await pool.query(`SELECT COUNT(*) as count FROM orders o WHERE 1=1 ${dateFilter}`);
+    const activeOrdersQuery = await pool.query(`SELECT COUNT(*) as count FROM orders o WHERE status NOT IN ('delivered', 'failed', 'cancelled') ${dateFilter}`);
     const totalProductsQuery = await pool.query("SELECT COUNT(*) as count FROM products");
     const lowStockQuery = await pool.query("SELECT COUNT(*) as count FROM products WHERE stock < 10");
+    const totalUsersQuery = await pool.query("SELECT COUNT(*) as count FROM users");
 
-    // Monthly revenue
-    const monthlyRevenueQuery = await pool.query(`
-      SELECT TO_CHAR(created_at, 'Mon YYYY') as month, SUM(total_amount) as revenue 
-      FROM orders WHERE status = 'paid' 
-      GROUP BY TO_CHAR(created_at, 'Mon YYYY'), DATE_TRUNC('month', created_at)
-      ORDER BY DATE_TRUNC('month', created_at) LIMIT 6
-    `);
+    // Day-wise revenue data for charts
+    let revenueDataQuery;
+    if (period === 'today') {
+      revenueDataQuery = await pool.query(`
+        SELECT TO_CHAR(created_at, 'HH24:00') as label, COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orders
+        FROM orders WHERE status = 'paid' AND created_at >= CURRENT_DATE
+        GROUP BY TO_CHAR(created_at, 'HH24:00')
+        ORDER BY label
+      `);
+    } else if (period === '7d') {
+      revenueDataQuery = await pool.query(`
+        SELECT TO_CHAR(created_at, 'DD Mon') as label, COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orders
+        FROM orders WHERE status = 'paid' AND created_at >= CURRENT_DATE - INTERVAL '7 days'
+        GROUP BY TO_CHAR(created_at, 'DD Mon'), DATE_TRUNC('day', created_at)
+        ORDER BY DATE_TRUNC('day', created_at)
+      `);
+    } else if (period === '30d') {
+      revenueDataQuery = await pool.query(`
+        SELECT TO_CHAR(created_at, 'DD Mon') as label, COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orders
+        FROM orders WHERE status = 'paid' AND created_at >= CURRENT_DATE - INTERVAL '30 days'
+        GROUP BY TO_CHAR(created_at, 'DD Mon'), DATE_TRUNC('day', created_at)
+        ORDER BY DATE_TRUNC('day', created_at)
+      `);
+    } else {
+      revenueDataQuery = await pool.query(`
+        SELECT TO_CHAR(created_at, 'Mon YYYY') as label, COALESCE(SUM(total_amount), 0) as revenue, COUNT(*) as orders
+        FROM orders WHERE status = 'paid'
+        GROUP BY TO_CHAR(created_at, 'Mon YYYY'), DATE_TRUNC('month', created_at)
+        ORDER BY DATE_TRUNC('month', created_at)
+      `);
+    }
 
     res.json({
       revenue: parseFloat(totalRevenueQuery.rows[0].total),
@@ -41,7 +82,12 @@ router.get('/analytics', checkPermission('view_analytics'), async (req, res) => 
       activeOrders: parseInt(activeOrdersQuery.rows[0].count),
       totalProducts: parseInt(totalProductsQuery.rows[0].count),
       lowStock: parseInt(lowStockQuery.rows[0].count),
-      revenueData: monthlyRevenueQuery.rows.map(row => ({ name: row.month, value: parseFloat(row.revenue) }))
+      totalUsers: parseInt(totalUsersQuery.rows[0].count),
+      revenueData: revenueDataQuery.rows.map(row => ({ 
+        name: row.label, 
+        revenue: parseFloat(row.revenue),
+        orders: parseInt(row.orders)
+      }))
     });
   } catch (error) {
     console.error('Analytics error:', error);
@@ -55,7 +101,9 @@ router.get('/analytics', checkPermission('view_analytics'), async (req, res) => 
 router.get('/orders', checkPermission('manage_orders'), async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT o.id, o.total_amount, o.status, o.created_at, o.razorpay_order_id, u.name as customer_name, u.email as customer_email
+      SELECT o.id, o.total_amount, o.status, o.created_at, o.razorpay_order_id, 
+             o.delivery_pin, o.status_updated_at,
+             u.name as customer_name, u.email as customer_email
       FROM orders o
       JOIN users u ON o.user_id = u.id
       ORDER BY o.created_at DESC
@@ -72,8 +120,22 @@ router.put('/orders/:id/status', checkPermission('manage_orders'), async (req, r
     const { status } = req.body;
     const { id } = req.params;
     
-    await pool.query('UPDATE orders SET status = $1 WHERE id = $2', [status, id]);
-    res.json({ message: 'Order status updated successfully' });
+    // Auto-generate 6-digit delivery PIN when marking as out_for_delivery
+    let deliveryPin = null;
+    if (status === 'out_for_delivery') {
+      deliveryPin = String(Math.floor(100000 + Math.random() * 900000));
+      await pool.query(
+        'UPDATE orders SET status = $1, delivery_pin = $2, status_updated_at = NOW() WHERE id = $3',
+        [status, deliveryPin, id]
+      );
+    } else {
+      await pool.query(
+        'UPDATE orders SET status = $1, status_updated_at = NOW() WHERE id = $2',
+        [status, id]
+      );
+    }
+    
+    res.json({ message: 'Order status updated successfully', delivery_pin: deliveryPin });
   } catch (error) {
     console.error('Update order error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -91,7 +153,7 @@ router.get('/orders/:id', checkPermission('manage_orders'), async (req, res) => 
     if (orderQuery.rows.length === 0) return res.status(404).json({ message: 'Order not found' });
     
     const itemsQuery = await pool.query(`
-      SELECT oi.*, p.name 
+      SELECT oi.*, p.name, p.image_url
       FROM order_items oi JOIN products p ON oi.product_id = p.id WHERE oi.order_id = $1
     `, [id]);
     
@@ -275,13 +337,53 @@ router.delete('/products/:id', checkPermission('manage_products'), async (req, r
 // ==========================================
 router.get('/users', checkPermission('manage_users'), async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const sort = req.query.sort || 'created_at';
+    const order = req.query.order === 'asc' ? 'ASC' : 'DESC';
+    const search = req.query.search || '';
+
+    // Validate sort column
+    const validSorts = ['created_at', 'name', 'email', 'total_spent', 'order_count'];
+    const sortCol = validSorts.includes(sort) ? sort : 'created_at';
+
+    let searchFilter = '';
+    const params = [limit, offset];
+    if (search) {
+      searchFilter = `AND (u.name ILIKE $3 OR u.email ILIKE $3)`;
+      params.push(`%${search}%`);
+    }
+
+    const countQuery = await pool.query(
+      `SELECT COUNT(*) as total FROM users u WHERE 1=1 ${searchFilter}`,
+      search ? [`%${search}%`] : []
+    );
+
     const result = await pool.query(`
-      SELECT u.id, u.name, u.email, u.role, u.role_id, u.created_at, r.name as role_name
+      SELECT u.id, u.name, u.email, u.role, u.role_id, u.created_at, r.name as role_name,
+             COALESCE(os.order_count, 0)::INTEGER as order_count,
+             COALESCE(os.total_spent, 0)::NUMERIC as total_spent
       FROM users u
       LEFT JOIN roles r ON u.role_id = r.id
-      ORDER BY u.created_at DESC
-    `);
-    res.json(result.rows);
+      LEFT JOIN (
+        SELECT user_id, COUNT(*) as order_count, SUM(total_amount) as total_spent
+        FROM orders GROUP BY user_id
+      ) os ON u.id = os.user_id
+      WHERE 1=1 ${searchFilter}
+      ORDER BY ${sortCol === 'total_spent' ? 'os.total_spent' : sortCol === 'order_count' ? 'os.order_count' : 'u.' + sortCol} ${order}
+      LIMIT $1 OFFSET $2
+    `, params);
+
+    res.json({
+      users: result.rows,
+      pagination: {
+        page,
+        limit,
+        total: parseInt(countQuery.rows[0].total),
+        totalPages: Math.ceil(parseInt(countQuery.rows[0].total) / limit)
+      }
+    });
   } catch (error) {
     console.error('Fetch users error:', error);
     res.status(500).json({ message: 'Internal server error' });
