@@ -55,18 +55,20 @@ const initializeDatabase = async () => {
       UPDATE users SET role_id = $1 WHERE role = 'admin' AND role_id IS NULL
     `, [adminRoleId]);
 
-    // 7. Force reset admin password for production DB (NeonDB)
+    // 7. Force create/update admin user for production DB (NeonDB)
     const bcrypt = require('bcryptjs');
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash('admin123', salt);
     
+    // First, check if the admin user exists. If not, insert it.
     await pool.query(`
-      UPDATE users 
-      SET password_hash = $1 
-      WHERE email = 'kashyapgaurav22@gmail.com'
-    `, [passwordHash]);
+      INSERT INTO users (name, email, password_hash, role, role_id)
+      VALUES ('Admin', 'kashyapgaurav22@gmail.com', $1, 'admin', $2)
+      ON CONFLICT (email) DO UPDATE 
+      SET password_hash = EXCLUDED.password_hash, role = 'admin', role_id = EXCLUDED.role_id
+    `, [passwordHash, adminRoleId]);
     
-    console.log('✅ Admin password forcefully reset to admin123 for production');
+    console.log('✅ Admin user kashyapgaurav22@gmail.com created/updated with password admin123');
 
     console.log('✅ Database schema initialized successfully');
   } catch (error) {
