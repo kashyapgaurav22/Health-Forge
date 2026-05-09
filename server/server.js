@@ -121,7 +121,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Health Forge API is running 🏥' });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🏥 Health Forge API running on http://localhost:${PORT}`);
+// Initialize DB and Start server
+const initializeDatabase = require('./config/init-db');
+
+initializeDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🏥 Health Forge API running on http://localhost:${PORT}`);
+  });
 });
