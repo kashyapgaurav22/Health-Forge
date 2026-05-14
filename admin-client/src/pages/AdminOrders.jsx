@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { MdRefresh, MdVisibility, MdLocalShipping, MdCheckCircle, MdCancel, MdContentCopy } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import Pagination from '../components/Pagination';
 import './AdminPages.css';
 
 const STATUS_FLOW = ['pending', 'accepted', 'out_for_delivery', 'delivered'];
@@ -31,6 +32,10 @@ const AdminOrders = () => {
   const [orderDetails, setOrderDetails] = useState(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  useEffect(() => { setCurrentPage(1); }, [search, statusFilter]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -99,6 +104,9 @@ const AdminOrders = () => {
     return matchesSearch && matchesStatus;
   });
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   return (
     <div>
       <div className="admin-card">
@@ -132,7 +140,7 @@ const AdminOrders = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map(order => {
+                {paginatedOrders.map(order => {
                   const nextStatus = getNextStatus(order.status);
                   return (
                     <tr key={order.id}>
@@ -190,6 +198,14 @@ const AdminOrders = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && filteredOrders.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredOrders.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

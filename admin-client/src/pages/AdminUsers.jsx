@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { MdEdit, MdPeople, MdAdminPanelSettings, MdPersonAdd, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import Pagination from '../components/Pagination';
 import './AdminPages.css';
 
 const AdminUsers = () => {
@@ -171,60 +172,13 @@ const AdminUsers = () => {
         )}
 
         {/* Pagination Controls */}
-        {pagination.totalPages > 1 && (
-          <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px',
-            padding: '20px', borderTop: '1px solid #e2e8f0'
-          }}>
-            <button
-              onClick={() => fetchData(pagination.page - 1)}
-              disabled={pagination.page <= 1}
-              className="admin-btn admin-btn-outline"
-              style={{ padding: '8px 12px', opacity: pagination.page <= 1 ? 0.4 : 1 }}
-            >
-              <MdChevronLeft size={18} /> Prev
-            </button>
-
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {Array.from({ length: Math.min(pagination.totalPages, 7) }, (_, i) => {
-                let pageNum;
-                if (pagination.totalPages <= 7) {
-                  pageNum = i + 1;
-                } else if (pagination.page <= 4) {
-                  pageNum = i + 1;
-                } else if (pagination.page >= pagination.totalPages - 3) {
-                  pageNum = pagination.totalPages - 6 + i;
-                } else {
-                  pageNum = pagination.page - 3 + i;
-                }
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => fetchData(pageNum)}
-                    style={{
-                      width: '36px', height: '36px', borderRadius: '8px',
-                      border: pageNum === pagination.page ? '2px solid #3b82f6' : '1px solid #e2e8f0',
-                      background: pageNum === pagination.page ? '#eff6ff' : 'white',
-                      color: pageNum === pagination.page ? '#2563eb' : '#64748b',
-                      fontWeight: pageNum === pagination.page ? 700 : 400,
-                      cursor: 'pointer', fontSize: '0.85rem'
-                    }}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-            </div>
-
-            <button
-              onClick={() => fetchData(pagination.page + 1)}
-              disabled={pagination.page >= pagination.totalPages}
-              className="admin-btn admin-btn-outline"
-              style={{ padding: '8px 12px', opacity: pagination.page >= pagination.totalPages ? 0.4 : 1 }}
-            >
-              Next <MdChevronRight size={18} />
-            </button>
-          </div>
+        {!loading && pagination.total > 0 && (
+          <Pagination
+            currentPage={pagination.page}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={fetchData}
+          />
         )}
       </div>
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { MdAdd, MdEdit, MdDelete, MdUploadFile, MdDownload, MdInventory } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import Pagination from '../components/Pagination';
 import './AdminPages.css';
 
 const EMPTY_FORM = { name: '', description: '', price: '', stock: '', category_slug: '', image_url: '' };
@@ -43,7 +44,11 @@ const AdminProducts = () => {
   const [sortBy, setSortBy] = useState('name');
   const [editingStock, setEditingStock] = useState(null);
   const [stockValue, setStockValue] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
   const csvRef = useRef();
+
+  useEffect(() => { setCurrentPage(1); }, [search, stockFilter, sortBy]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -147,6 +152,9 @@ const AdminProducts = () => {
   else if (sortBy === 'stock_desc') filteredProducts = [...filteredProducts].sort((a, b) => b.stock - a.stock);
   else if (sortBy === 'price') filteredProducts = [...filteredProducts].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   // Inventory summary
   const totalValue = products.reduce((sum, p) => sum + parseFloat(p.price) * p.stock, 0);
   const totalUnits = products.reduce((sum, p) => sum + p.stock, 0);
@@ -223,7 +231,7 @@ const AdminProducts = () => {
                 <tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {filteredProducts.map(product => (
+                {paginatedProducts.map(product => (
                   <tr key={product.id}>
                     <td>
                       <img src={product.image_url} alt={product.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }}
@@ -268,6 +276,14 @@ const AdminProducts = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && filteredProducts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredProducts.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 

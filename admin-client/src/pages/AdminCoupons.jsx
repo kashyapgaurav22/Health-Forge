@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { MdAdd, MdDelete, MdEdit, MdToggleOn, MdToggleOff, MdLocalOffer } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import Pagination from '../components/Pagination';
 import './AdminPages.css';
 
 const EMPTY_FORM = { code: '', discount_percentage: '', is_active: true, expires_at: '', max_discount_amount: '', min_order_amount: '', max_uses: '', per_user_limit: '1' };
@@ -13,6 +14,8 @@ const AdminCoupons = () => {
   const [editCoupon, setEditCoupon] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const fetchCoupons = async () => {
     setLoading(true);
@@ -80,6 +83,9 @@ const AdminCoupons = () => {
 
   const isExpired = (date) => date && new Date(date) < new Date();
 
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedCoupons = coupons.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
   return (
     <div>
       {/* Stats */}
@@ -132,7 +138,7 @@ const AdminCoupons = () => {
                 </tr>
               </thead>
               <tbody>
-                {coupons.map(coupon => {
+                {paginatedCoupons.map(coupon => {
                   const expired = isExpired(coupon.expires_at);
                   return (
                     <tr key={coupon.id}>
@@ -191,6 +197,14 @@ const AdminCoupons = () => {
               </tbody>
             </table>
           </div>
+        )}
+        {!loading && coupons.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={coupons.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
         )}
       </div>
 
