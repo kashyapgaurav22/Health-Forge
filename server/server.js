@@ -81,37 +81,40 @@ app.get('/api/debug', (req, res) => {
   });
 });
 
-// Test Email Setup
+// Test Email Setup (SMTP)
 app.get('/api/test-email', async (req, res) => {
   try {
-    const { Resend } = require('resend');
-    
-    if (!process.env.RESEND_API_KEY) {
-      return res.status(400).json({ error: 'RESEND_API_KEY is missing in Render Environment!' });
-    }
-    
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    // We send to an arbitrary email, or if they have a test one they can pass it as a query param.
-    // For free tier, they can ONLY send to the email they registered with Resend.
-    const testEmail = req.query.email || 'test@example.com';
+    const nodemailer = require('nodemailer');
 
-    const { data, error } = await resend.emails.send({
-      from: 'Health Forge Test <onboarding@resend.dev>',
-      to: testEmail,
-      subject: 'Health Forge Email Test Successful!',
-      text: 'If you are reading this, your Render email configuration with Resend is perfectly working!',
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return res.status(400).json({ error: 'SMTP_USER or SMTP_PASS is missing in environment!' });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: parseInt(process.env.SMTP_PORT || '587') === 465,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
     });
 
-    if (error) {
-       return res.status(500).json({ success: false, error });
-    }
+    const testEmail = req.query.email || process.env.SMTP_USER;
 
-    res.json({ success: true, message: `Test email sent! Response ID: ${data.id}`, note: "Remember, on Resend's free tier, you can only send emails to the exact email address you used to sign up for Resend." });
+    const info = await transporter.sendMail({
+      from: `"Health Forge Test" <${process.env.SMTP_USER}>`,
+      to: testEmail,
+      subject: 'Health Forge Email Test Successful! ✅',
+      text: 'If you are reading this, your SMTP email configuration is perfectly working!',
+      html: '<h2 style="color:#0FCEDC;">⚕️ Health Forge</h2><p>If you are reading this, your SMTP email configuration is perfectly working! 🎉</p>',
+    });
+
+    res.json({ success: true, message: `Test email sent to ${testEmail}!`, messageId: info.messageId });
   } catch (error) {
     res.status(500).json({ 
       success: false, 
-      error: error.message, 
+      error: error.message,
+      code: error.code || null,
     });
   }
 });
