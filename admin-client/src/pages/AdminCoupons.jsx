@@ -89,26 +89,26 @@ const AdminCoupons = () => {
   return (
     <div>
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', background: 'rgba(59,130,246,0.1)', borderRadius: '10px', color: '#3b82f6' }}><MdLocalOffer size={28} /></div>
+      <div className="admin-stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(15,206,220,0.12)', color: '#0FCEDC' }}><MdLocalOffer size={26} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Total Coupons</p>
-            <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{coupons.length}</p>
+            <p className="admin-stat-label">Total Coupons</p>
+            <p className="admin-stat-value">{coupons.length}</p>
           </div>
         </div>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', background: 'rgba(16,185,129,0.1)', borderRadius: '10px', color: '#10b981' }}><MdToggleOn size={28} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}><MdToggleOn size={26} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Active</p>
-            <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{coupons.filter(c => c.is_active && !isExpired(c.expires_at)).length}</p>
+            <p className="admin-stat-label">Active</p>
+            <p className="admin-stat-value">{coupons.filter(c => c.is_active && !isExpired(c.expires_at)).length}</p>
           </div>
         </div>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ padding: '14px', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', color: '#ef4444' }}><MdToggleOff size={28} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}><MdToggleOff size={26} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Inactive / Expired</p>
-            <p style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#1e293b' }}>{coupons.filter(c => !c.is_active || isExpired(c.expires_at)).length}</p>
+            <p className="admin-stat-label">Inactive / Expired</p>
+            <p className="admin-stat-value">{coupons.filter(c => !c.is_active || isExpired(c.expires_at)).length}</p>
           </div>
         </div>
       </div>
@@ -116,7 +116,7 @@ const AdminCoupons = () => {
       {/* Coupons Table */}
       <div className="admin-card">
         <div className="admin-card-header">
-          <h3 style={{ margin: 0, color: '#1e293b' }}>All Coupons</h3>
+          <h3>All Coupons</h3>
           <button onClick={openCreate} className="admin-btn admin-btn-primary"><MdAdd size={20} /> Create Coupon</button>
         </div>
 
@@ -126,16 +126,7 @@ const AdminCoupons = () => {
           <div className="admin-table-container">
             <table className="admin-table">
               <thead>
-                <tr>
-                  <th>Code</th>
-                  <th>Discount</th>
-                  <th>Max Discount</th>
-                  <th>Min Order</th>
-                  <th>Uses</th>
-                  <th>Status</th>
-                  <th>Expires</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>Code</th><th>Discount</th><th>Max Discount</th><th>Min Order</th><th>Uses</th><th>Status</th><th>Expires</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {paginatedCoupons.map(coupon => {
@@ -143,68 +134,50 @@ const AdminCoupons = () => {
                   return (
                     <tr key={coupon.id}>
                       <td><span className="coupon-code-badge">{coupon.code}</span></td>
-                      <td>
-                        <span style={{ fontWeight: 700, fontSize: '1rem', color: '#3b82f6' }}>
-                          {coupon.discount_percentage}% OFF
-                        </span>
+                      <td><span className="font-bold text-accent" style={{ fontSize: '0.95rem' }}>{coupon.discount_percentage}% OFF</span></td>
+                      <td className="text-muted">
+                        {coupon.max_discount_amount ? `₹${parseFloat(coupon.max_discount_amount).toLocaleString()}` : <span className="text-muted" style={{ opacity: 0.5 }}>No cap</span>}
                       </td>
-                      <td style={{ color: '#64748b' }}>
-                        {coupon.max_discount_amount ? `₹${parseFloat(coupon.max_discount_amount).toLocaleString()}` : <span style={{ color: '#cbd5e1' }}>No cap</span>}
+                      <td className="text-muted">
+                        {parseFloat(coupon.min_order_amount) > 0 ? `₹${parseFloat(coupon.min_order_amount).toLocaleString()}` : <span style={{ opacity: 0.5 }}>None</span>}
                       </td>
-                      <td style={{ color: '#64748b' }}>
-                        {parseFloat(coupon.min_order_amount) > 0 ? `₹${parseFloat(coupon.min_order_amount).toLocaleString()}` : <span style={{ color: '#cbd5e1' }}>None</span>}
-                      </td>
-                      <td>
-                        <span style={{ color: '#64748b' }}>
-                          {coupon.usage_count || 0}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}
-                        </span>
-                      </td>
+                      <td className="text-muted">{coupon.usage_count || 0}{coupon.max_uses ? ` / ${coupon.max_uses}` : ''}</td>
                       <td>
                         {expired ? (
-                          <span className="status-pill" style={{ background: '#fee2e2', color: '#dc2626' }}>Expired</span>
+                          <span className="status-pill" style={{ background: 'rgba(248,113,113,0.15)', color: '#f87171' }}>Expired</span>
                         ) : coupon.is_active ? (
-                          <span className="status-pill" style={{ background: '#d1fae5', color: '#059669' }}>Active</span>
+                          <span className="status-pill" style={{ background: 'rgba(52,211,153,0.15)', color: '#34d399' }}>Active</span>
                         ) : (
-                          <span className="status-pill" style={{ background: '#f1f5f9', color: '#64748b' }}>Inactive</span>
+                          <span className="status-pill" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>Inactive</span>
                         )}
                       </td>
-                      <td style={{ color: expired ? '#ef4444' : '#64748b', fontSize: '0.85rem' }}>
+                      <td style={{ fontSize: '0.82rem', color: expired ? '#f87171' : 'var(--text-muted)' }}>
                         {coupon.expires_at
                           ? new Date(coupon.expires_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                          : <span style={{ color: '#94a3b8' }}>No expiry</span>}
+                          : <span className="text-muted" style={{ opacity: 0.5 }}>No expiry</span>}
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                          <button onClick={() => openEdit(coupon)} className="admin-btn admin-btn-outline" style={{ padding: '5px 10px' }}>
-                            <MdEdit size={16} />
-                          </button>
+                          <button onClick={() => openEdit(coupon)} className="admin-btn admin-btn-outline" style={{ padding: '5px 10px' }}><MdEdit size={16} /></button>
                           <button onClick={() => handleToggle(coupon)} title={coupon.is_active ? 'Deactivate' : 'Activate'}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: coupon.is_active ? '#10b981' : '#94a3b8' }}>
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: coupon.is_active ? '#34d399' : 'var(--text-muted)' }}>
                             {coupon.is_active ? <MdToggleOn size={26} /> : <MdToggleOff size={26} />}
                           </button>
-                          <button onClick={() => handleDelete(coupon.id)} className="admin-btn"
-                            style={{ padding: '5px 10px', background: '#fee2e2', color: '#dc2626', border: 'none' }}>
-                            <MdDelete size={16} />
-                          </button>
+                          <button onClick={() => handleDelete(coupon.id)} className="admin-btn admin-btn-danger" style={{ padding: '5px 10px' }}><MdDelete size={16} /></button>
                         </div>
                       </td>
                     </tr>
                   );
                 })}
                 {coupons.length === 0 && (
-                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '48px', color: '#94a3b8' }}>No coupons yet. Create one!</td></tr>
+                  <tr><td colSpan="8" className="admin-loading-state">No coupons yet. Create one!</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         )}
         {!loading && coupons.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalItems={coupons.length}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={setCurrentPage}
-          />
+          <Pagination currentPage={currentPage} totalItems={coupons.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setCurrentPage} />
         )}
       </div>
 
@@ -216,14 +189,14 @@ const AdminCoupons = () => {
               <h2>{editCoupon ? 'Edit Coupon' : 'Create Coupon'}</h2>
               <button onClick={() => setModalOpen(false)} className="admin-modal-close">✕</button>
             </div>
-            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+            <form onSubmit={handleSubmit} className="admin-modal-body">
               <div className="admin-form-grid">
                 <div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="admin-label">Coupon Code *</label>
-                  <input className="admin-input" value={form.code}
+                  <input className="admin-input font-mono" value={form.code}
                     onChange={e => setForm({ ...form, code: e.target.value.toUpperCase() })}
                     placeholder="e.g. SUMMER25" required
-                    style={{ fontFamily: 'monospace', letterSpacing: '2px', fontSize: '1.1rem', textTransform: 'uppercase' }} />
+                    style={{ letterSpacing: '2px', fontSize: '1.05rem', textTransform: 'uppercase' }} />
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-label">Discount % *</label>
@@ -234,13 +207,13 @@ const AdminCoupons = () => {
                   <label className="admin-label">Max Discount (₹)</label>
                   <input className="admin-input" type="number" min="0" value={form.max_discount_amount}
                     onChange={e => setForm({ ...form, max_discount_amount: e.target.value })} placeholder="e.g. 500" />
-                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0' }}>Cap the maximum discount amount</p>
+                  <p className="admin-form-hint">Cap the maximum discount amount</p>
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-label">Min Order (₹)</label>
                   <input className="admin-input" type="number" min="0" value={form.min_order_amount}
                     onChange={e => setForm({ ...form, min_order_amount: e.target.value })} placeholder="e.g. 1000" />
-                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', margin: '4px 0 0' }}>Minimum cart value to use coupon</p>
+                  <p className="admin-form-hint">Minimum cart value to use coupon</p>
                 </div>
                 <div className="admin-form-group">
                   <label className="admin-label">Total Max Uses</label>
@@ -269,7 +242,7 @@ const AdminCoupons = () => {
                   </label>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <div className="admin-modal-footer">
                 <button type="button" onClick={() => setModalOpen(false)} className="admin-btn admin-btn-outline">Cancel</button>
                 <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
                   {saving ? 'Saving...' : (editCoupon ? 'Update Coupon' : 'Create Coupon')}

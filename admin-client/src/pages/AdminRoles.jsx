@@ -25,29 +25,15 @@ const AdminRoles = () => {
 
   const fetchRoles = async () => {
     setLoading(true);
-    try {
-      const res = await api.get('/admin/roles');
-      setRoles(res.data);
-    } catch (err) {
-      toast.error('Failed to fetch roles');
-    } finally {
-      setLoading(false);
-    }
+    try { const res = await api.get('/admin/roles'); setRoles(res.data); }
+    catch (err) { toast.error('Failed to fetch roles'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchRoles(); }, []);
 
-  const openAddModal = () => {
-    setEditRole(null);
-    setForm(EMPTY_FORM);
-    setModalOpen(true);
-  };
-
-  const openEditModal = (role) => {
-    setEditRole(role);
-    setForm({ name: role.name, permissions: role.permissions || [] });
-    setModalOpen(true);
-  };
+  const openAddModal = () => { setEditRole(null); setForm(EMPTY_FORM); setModalOpen(true); };
+  const openEditModal = (role) => { setEditRole(role); setForm({ name: role.name, permissions: role.permissions || [] }); setModalOpen(true); };
 
   const togglePermission = (key) => {
     setForm(prev => ({
@@ -70,24 +56,15 @@ const AdminRoles = () => {
         await api.post('/admin/roles', form);
         toast.success('Role created!');
       }
-      setModalOpen(false);
-      fetchRoles();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to save role');
-    } finally {
-      setSaving(false);
-    }
+      setModalOpen(false); fetchRoles();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to save role'); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this role? Any user assigned to it will lose permissions.')) return;
-    try {
-      await api.delete(`/admin/roles/${id}`);
-      toast.success('Role deleted');
-      fetchRoles();
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete role');
-    }
+    try { await api.delete(`/admin/roles/${id}`); toast.success('Role deleted'); fetchRoles(); }
+    catch (err) { toast.error(err.response?.data?.message || 'Failed to delete role'); }
   };
 
   return (
@@ -95,14 +72,12 @@ const AdminRoles = () => {
       <div className="admin-card">
         <div className="admin-card-header">
           <div>
-            <h3 style={{ margin: 0, color: '#1e293b' }}>Manage Roles</h3>
-            <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.9rem' }}>
+            <h3>Manage Roles</h3>
+            <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>
               Create roles and define exactly what each role can access in the dashboard.
             </p>
           </div>
-          <button onClick={openAddModal} className="admin-btn admin-btn-primary">
-            <MdAdd size={20} /> Create Role
-          </button>
+          <button onClick={openAddModal} className="admin-btn admin-btn-primary"><MdAdd size={20} /> Create Role</button>
         </div>
 
         {loading ? (
@@ -117,12 +92,8 @@ const AdminRoles = () => {
                     <span className="role-perms-count">{(role.permissions || []).length} permissions</span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => openEditModal(role)} className="admin-btn admin-btn-outline" style={{ padding: '6px 10px' }}>
-                      <MdEdit size={16} />
-                    </button>
-                    <button onClick={() => handleDelete(role.id)} className="admin-btn" style={{ padding: '6px 10px', background: '#fee2e2', color: '#dc2626', border: 'none' }}>
-                      <MdDelete size={16} />
-                    </button>
+                    <button onClick={() => openEditModal(role)} className="admin-btn admin-btn-outline" style={{ padding: '6px 10px' }}><MdEdit size={16} /></button>
+                    <button onClick={() => handleDelete(role.id)} className="admin-btn admin-btn-danger" style={{ padding: '6px 10px' }}><MdDelete size={16} /></button>
                   </div>
                 </div>
                 <div className="role-perms-list">
@@ -136,9 +107,7 @@ const AdminRoles = () => {
               </div>
             ))}
             {roles.length === 0 && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '48px', color: '#94a3b8' }}>
-                No roles created yet. Create one to get started.
-              </div>
+              <div style={{ gridColumn: '1/-1' }} className="admin-loading-state">No roles created yet. Create one to get started.</div>
             )}
           </div>
         )}
@@ -152,34 +121,25 @@ const AdminRoles = () => {
               <h2>{editRole ? `Edit Role: ${editRole.name}` : 'Create New Role'}</h2>
               <button onClick={() => setModalOpen(false)} className="admin-modal-close">✕</button>
             </div>
-            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+            <form onSubmit={handleSubmit} className="admin-modal-body">
               <div className="admin-form-group" style={{ marginBottom: '24px' }}>
                 <label className="admin-label">Role Name *</label>
-                <input
-                  className="admin-input"
-                  value={form.name}
-                  onChange={e => setForm({...form, name: e.target.value})}
-                  placeholder="e.g. Inventory Manager, Support Agent..."
-                  required
-                  disabled={editRole?.name === 'Admin'}
-                />
+                <input className="admin-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                  placeholder="e.g. Inventory Manager, Support Agent..." required disabled={editRole?.name === 'Admin'} />
                 {editRole?.name === 'Admin' && (
-                  <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: '4px' }}>The Admin role name cannot be changed.</p>
+                  <p className="admin-form-hint" style={{ color: '#fbbf24' }}>The Admin role name cannot be changed.</p>
                 )}
               </div>
 
               <div className="admin-form-group">
                 <label className="admin-label">Permissions</label>
-                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '16px' }}>
+                <p className="text-muted" style={{ fontSize: '0.82rem', marginBottom: '16px' }}>
                   Select what this role can do in the admin dashboard.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {ALL_PERMISSIONS.map(perm => (
-                    <label
-                      key={perm.key}
-                      className={`permission-toggle ${form.permissions.includes(perm.key) ? 'active' : ''}`}
-                      onClick={() => togglePermission(perm.key)}
-                    >
+                    <label key={perm.key} className={`permission-toggle ${form.permissions.includes(perm.key) ? 'active' : ''}`}
+                      onClick={() => togglePermission(perm.key)}>
                       <div className="permission-toggle-checkbox">
                         {form.permissions.includes(perm.key) && <MdCheck size={14} />}
                       </div>
@@ -192,7 +152,7 @@ const AdminRoles = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <div className="admin-modal-footer">
                 <button type="button" onClick={() => setModalOpen(false)} className="admin-btn admin-btn-outline">Cancel</button>
                 <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
                   {saving ? 'Saving...' : (editRole ? 'Update Role' : 'Create Role')}

@@ -14,18 +14,11 @@ const STOCK_FILTERS = [
   { key: 'out', label: 'Out of Stock (0)' },
 ];
 
-const getStockColor = (stock) => {
-  if (stock <= 0) return '#dc2626';
-  if (stock < 10) return '#f59e0b';
-  if (stock < 50) return '#f97316';
-  return '#059669';
-};
-
-const getStockBg = (stock) => {
-  if (stock <= 0) return '#fee2e2';
-  if (stock < 10) return '#fef3c7';
-  if (stock < 50) return '#fff7ed';
-  return '#d1fae5';
+const getStockClass = (stock) => {
+  if (stock <= 0) return 'stock-out';
+  if (stock < 10) return 'stock-low';
+  if (stock < 50) return 'stock-warn';
+  return 'stock-ok';
 };
 
 const AdminProducts = () => {
@@ -155,7 +148,6 @@ const AdminProducts = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Inventory summary
   const totalValue = products.reduce((sum, p) => sum + parseFloat(p.price) * p.stock, 0);
   const totalUnits = products.reduce((sum, p) => sum + p.stock, 0);
   const outOfStock = products.filter(p => p.stock <= 0).length;
@@ -163,37 +155,37 @@ const AdminProducts = () => {
   return (
     <div>
       {/* Inventory Summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}><MdInventory size={24} /></div>
+      <div className="admin-stats-grid">
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(15,206,220,0.12)', color: '#0FCEDC' }}><MdInventory size={24} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Total Value</p>
-            <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>₹{totalValue.toLocaleString('en-IN')}</p>
+            <p className="admin-stat-label">Total Value</p>
+            <p className="admin-stat-value">₹{totalValue.toLocaleString('en-IN')}</p>
           </div>
         </div>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '12px', background: '#d1fae5', borderRadius: '10px', color: '#059669' }}><MdInventory size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(52,211,153,0.12)', color: '#34d399' }}><MdInventory size={24} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Total Units</p>
-            <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>{totalUnits.toLocaleString()}</p>
+            <p className="admin-stat-label">Total Units</p>
+            <p className="admin-stat-value">{totalUnits.toLocaleString()}</p>
           </div>
         </div>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '12px', background: '#fee2e2', borderRadius: '10px', color: '#dc2626' }}><MdInventory size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(248,113,113,0.12)', color: '#f87171' }}><MdInventory size={24} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Out of Stock</p>
-            <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>{outOfStock}</p>
+            <p className="admin-stat-label">Out of Stock</p>
+            <p className="admin-stat-value">{outOfStock}</p>
           </div>
         </div>
       </div>
 
       {/* Bulk Upload */}
-      <div className="admin-card" style={{ marginBottom: '24px' }}>
-        <div className="admin-card-header" style={{ marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, color: '#1e293b' }}>Bulk CSV Upload</h3>
+      <div className="admin-card">
+        <div className="admin-card-header">
+          <h3>Bulk CSV Upload</h3>
           <button onClick={downloadCsvTemplate} className="admin-btn admin-btn-outline"><MdDownload size={18} /> Template</button>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="admin-filter-bar">
           <label className="csv-upload-label">
             <MdUploadFile size={20} /> {csvFile ? csvFile.name : 'Choose CSV File'}
             <input ref={csvRef} type="file" accept=".csv" onChange={e => setCsvFile(e.target.files[0])} style={{ display: 'none' }} />
@@ -207,12 +199,12 @@ const AdminProducts = () => {
       {/* Products Table */}
       <div className="admin-card">
         <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="admin-input" style={{ minWidth: '200px' }} />
-            <select value={stockFilter} onChange={e => setStockFilter(e.target.value)} className="admin-input" style={{ minWidth: '150px' }}>
+          <div className="admin-filter-bar">
+            <input type="text" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="admin-input" style={{ minWidth: '200px', width: 'auto' }} />
+            <select value={stockFilter} onChange={e => setStockFilter(e.target.value)} className="admin-input" style={{ minWidth: '150px', width: 'auto' }}>
               {STOCK_FILTERS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
             </select>
-            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="admin-input" style={{ minWidth: '130px' }}>
+            <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="admin-input" style={{ minWidth: '130px', width: 'auto' }}>
               <option value="name">Sort: Name</option>
               <option value="stock_asc">Stock: Low→High</option>
               <option value="stock_desc">Stock: High→Low</option>
@@ -234,28 +226,25 @@ const AdminProducts = () => {
                 {paginatedProducts.map(product => (
                   <tr key={product.id}>
                     <td>
-                      <img src={product.image_url} alt={product.name} style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '8px' }}
-                        onError={e => { e.target.src = 'https://via.placeholder.com/50x50?text=No+Img'; }} />
+                      <img src={product.image_url} alt={product.name} style={{ width: '44px', height: '44px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                        onError={e => { e.target.src = 'https://via.placeholder.com/44x44?text=N/A'; }} />
                     </td>
-                    <td style={{ fontWeight: 500, maxWidth: '220px' }}>{product.name}</td>
+                    <td style={{ fontWeight: 500, color: 'var(--text-primary)', maxWidth: '220px' }}>{product.name}</td>
                     <td><span className="category-badge">{product.category_name || '—'}</span></td>
-                    <td style={{ fontWeight: 600 }}>₹{parseFloat(product.price).toLocaleString()}</td>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>₹{parseFloat(product.price).toLocaleString()}</td>
                     <td>
                       {editingStock === product.id ? (
                         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                           <input type="number" value={stockValue} onChange={e => setStockValue(e.target.value)}
-                            className="admin-input" style={{ width: '70px', padding: '4px 8px' }} autoFocus
+                            className="admin-input stock-edit-input" autoFocus
                             onKeyDown={e => { if (e.key === 'Enter') handleInlineStockSave(product.id); if (e.key === 'Escape') setEditingStock(null); }} />
-                          <button onClick={() => handleInlineStockSave(product.id)} style={{ background: '#d1fae5', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: '#059669', fontWeight: 600 }}>✓</button>
-                          <button onClick={() => setEditingStock(null)} style={{ background: '#fee2e2', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', color: '#dc2626' }}>✕</button>
+                          <button onClick={() => handleInlineStockSave(product.id)} className="stock-edit-save">✓</button>
+                          <button onClick={() => setEditingStock(null)} className="stock-edit-cancel">✕</button>
                         </div>
                       ) : (
                         <span
                           onClick={() => { setEditingStock(product.id); setStockValue(String(product.stock)); }}
-                          style={{
-                            padding: '4px 12px', borderRadius: '20px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer',
-                            background: getStockBg(product.stock), color: getStockColor(product.stock)
-                          }}
+                          className={`stock-badge ${getStockClass(product.stock)}`}
                           title="Click to edit stock"
                         >
                           {product.stock} {product.stock <= 0 ? '⚠' : ''}
@@ -265,25 +254,20 @@ const AdminProducts = () => {
                     <td>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button onClick={() => openEditModal(product)} className="admin-btn admin-btn-outline" style={{ padding: '6px 10px' }}><MdEdit size={16} /></button>
-                        <button onClick={() => handleDelete(product.id)} className="admin-btn" style={{ padding: '6px 10px', background: '#fee2e2', color: '#dc2626', border: 'none' }}><MdDelete size={16} /></button>
+                        <button onClick={() => handleDelete(product.id)} className="admin-btn admin-btn-danger" style={{ padding: '6px 10px' }}><MdDelete size={16} /></button>
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filteredProducts.length === 0 && (
-                  <tr><td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>No products found.</td></tr>
+                  <tr><td colSpan="6" className="admin-loading-state">No products found.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         )}
         {!loading && filteredProducts.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalItems={filteredProducts.length}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={setCurrentPage}
-          />
+          <Pagination currentPage={currentPage} totalItems={filteredProducts.length} itemsPerPage={ITEMS_PER_PAGE} onPageChange={setCurrentPage} />
         )}
       </div>
 
@@ -295,7 +279,7 @@ const AdminProducts = () => {
               <h2>{editProduct ? 'Edit Product' : 'Add New Product'}</h2>
               <button onClick={() => setModalOpen(false)} className="admin-modal-close">✕</button>
             </div>
-            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+            <form onSubmit={handleSubmit} className="admin-modal-body">
               <div className="admin-form-grid">
                 <div className="admin-form-group" style={{ gridColumn: '1 / -1' }}>
                   <label className="admin-label">Product Name *</label>
@@ -331,11 +315,11 @@ const AdminProducts = () => {
                       <input className="admin-input" type="url" placeholder="https://example.com/image.jpg" value={form.image_url}
                         onChange={e => setForm({...form, image_url: e.target.value})} style={{ marginTop: '8px' }} />
                     </div>
-                    {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0' }} />}
+                    {imagePreview && <img src={imagePreview} alt="Preview" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }} />}
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <div className="admin-modal-footer">
                 <button type="button" onClick={() => setModalOpen(false)} className="admin-btn admin-btn-outline">Cancel</button>
                 <button type="submit" className="admin-btn admin-btn-primary" disabled={uploading}>
                   {uploading ? 'Saving...' : (editProduct ? 'Update Product' : 'Add Product')}

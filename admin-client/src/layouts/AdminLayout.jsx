@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiTrendingUp, FiShoppingBag, FiBox, FiTag, FiUsers, FiLogOut, FiMenu } from 'react-icons/fi';
+import { FiTrendingUp, FiShoppingBag, FiBox, FiTag, FiUsers, FiLogOut, FiMenu, FiShield } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import '../pages/AdminPages.css';
 
 export default function AdminLayout() {
   const { user, logout } = useAuth();
@@ -30,85 +31,56 @@ export default function AdminLayout() {
     { to: '/products', icon: FiBox, label: 'Inventory' },
     { to: '/coupons', icon: FiTag, label: 'Coupons' },
     { to: '/users', icon: FiUsers, label: 'Users' },
+    { to: '/roles', icon: FiShield, label: 'Roles' },
   ];
 
   return (
-    <div className="admin-layout" style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="admin-layout">
       {/* Sidebar */}
-      <aside 
-        style={{ 
-          width: sidebarOpen ? '250px' : '70px', 
-          background: '#0f172a', 
-          color: 'white',
-          transition: 'width 0.3s',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'sticky',
-          top: 0,
-          height: '100vh',
-          zIndex: 50
-        }}
-      >
-        <div style={{ padding: '20px', display: 'flex', alignItems: 'center', justifyContent: sidebarOpen ? 'space-between' : 'center', borderBottom: '1px solid #1e293b' }}>
-          {sidebarOpen && <h2 style={{ margin: 0, color: '#0FCEDC', fontSize: '1.2rem', whiteSpace: 'nowrap' }}>Health Forge Admin</h2>}
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex' }}>
-            <FiMenu size={24} />
+      <aside className={`admin-sidebar ${sidebarOpen ? '' : 'collapsed'}`}>
+        <div className="admin-sidebar-header">
+          {sidebarOpen && <h2 className="admin-sidebar-brand">Health Forge</h2>}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="admin-sidebar-toggle">
+            <FiMenu size={22} />
           </button>
         </div>
 
-        <nav style={{ flex: 1, padding: '20px 0', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <nav className="admin-nav">
           {navLinks.map((link) => (
-            <NavLink 
+            <NavLink
               key={link.to}
-              to={link.to} 
-              end={link.to === '/admin'}
-              style={({ isActive }) => ({
-                display: 'flex', 
-                alignItems: 'center', 
-                padding: '12px 20px', 
-                color: isActive ? '#0FCEDC' : '#94a3b8', 
-                background: isActive ? 'rgba(15, 206, 220, 0.1)' : 'transparent',
-                borderRight: isActive ? '3px solid #0FCEDC' : '3px solid transparent',
-                textDecoration: 'none', 
-                gap: '15px',
-                transition: 'all 0.2s'
-              })}
+              to={link.to}
+              end={link.to === '/'}
+              className={({ isActive }) => `admin-nav-link ${isActive ? 'active' : ''}`}
             >
-              <link.icon size={20} style={{ minWidth: '20px' }}/>
+              <link.icon size={20} />
               {sidebarOpen && <span>{link.label}</span>}
             </NavLink>
           ))}
         </nav>
 
-        <div style={{ padding: '20px', borderTop: '1px solid #1e293b' }}>
-          <button 
-            onClick={handleLogout}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: '15px', background: 'none', border: 'none', 
-              color: '#ef4444', cursor: 'pointer', width: '100%', padding: '12px 0', fontSize: '1rem'
-            }}
-          >
-            <FiLogOut size={20} style={{ minWidth: '20px' }}/>
+        <div className="admin-sidebar-footer">
+          <button onClick={handleLogout} className="admin-logout-btn">
+            <FiLogOut size={20} />
             {sidebarOpen && <span>Logout</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
-        <header style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '30px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#0FCEDC', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+      <main className="admin-main">
+        <header className="admin-header">
+          <div className="admin-user-info">
+            <div className="admin-avatar">
               {user.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <p style={{ margin: 0, fontWeight: 'bold' }}>{user.name}</p>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Administrator</p>
+              <p className="admin-user-name">{user.name}</p>
+              <p className="admin-user-role">Administrator</p>
             </div>
           </div>
         </header>
 
-        {/* Content Outlet */}
         <div style={{ minHeight: 'calc(100vh - 120px)' }}>
           <Outlet />
         </div>

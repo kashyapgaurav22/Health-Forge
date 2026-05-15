@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
-import { MdEdit, MdPeople, MdAdminPanelSettings, MdPersonAdd, MdChevronLeft, MdChevronRight } from 'react-icons/md';
+import { MdEdit, MdPeople, MdAdminPanelSettings } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import Pagination from '../components/Pagination';
 import './AdminPages.css';
@@ -36,15 +36,9 @@ const AdminUsers = () => {
 
   useEffect(() => { fetchData(1); }, [sort, sortOrder]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchData(1);
-  };
+  const handleSearch = (e) => { e.preventDefault(); fetchData(1); };
 
-  const openAssignModal = (user) => {
-    setAssignModal(user);
-    setSelectedRoleId(user.role_id || '');
-  };
+  const openAssignModal = (user) => { setAssignModal(user); setSelectedRoleId(user.role_id || ''); };
 
   const handleAssignRole = async () => {
     setSaving(true);
@@ -57,26 +51,25 @@ const AdminUsers = () => {
     finally { setSaving(false); }
   };
 
-  // Stats
   const totalUsers = pagination.total;
   const adminCount = users.filter(u => u.role_name).length;
 
   return (
     <div>
       {/* Stats Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '12px', background: '#eff6ff', borderRadius: '10px', color: '#3b82f6' }}><MdPeople size={24} /></div>
+      <div className="admin-stats-grid">
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(15,206,220,0.12)', color: '#0FCEDC' }}><MdPeople size={24} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Total Users</p>
-            <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>{totalUsers}</p>
+            <p className="admin-stat-label">Total Users</p>
+            <p className="admin-stat-value">{totalUsers}</p>
           </div>
         </div>
-        <div className="admin-card" style={{ marginBottom: 0, display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ padding: '12px', background: '#fce7f3', borderRadius: '10px', color: '#db2777' }}><MdAdminPanelSettings size={24} /></div>
+        <div className="admin-stat-card">
+          <div className="admin-stat-icon" style={{ background: 'rgba(167,139,250,0.12)', color: '#a78bfa' }}><MdAdminPanelSettings size={24} /></div>
           <div>
-            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Staff / Admins</p>
-            <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: '#1e293b' }}>{adminCount}</p>
+            <p className="admin-stat-label">Staff / Admins</p>
+            <p className="admin-stat-value">{adminCount}</p>
           </div>
         </div>
       </div>
@@ -84,24 +77,22 @@ const AdminUsers = () => {
       {/* Users Table */}
       <div className="admin-card">
         <div className="admin-card-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <form onSubmit={handleSearch} className="admin-filter-bar">
             <input type="text" placeholder="Search name or email..." value={search} onChange={e => setSearch(e.target.value)}
-              className="admin-input" style={{ minWidth: '240px' }} />
+              className="admin-input" style={{ minWidth: '240px', width: 'auto' }} />
             <button type="submit" className="admin-btn admin-btn-outline" style={{ padding: '8px 16px' }}>Search</button>
-            <select value={sort} onChange={e => setSort(e.target.value)} className="admin-input" style={{ minWidth: '140px' }}>
+            <select value={sort} onChange={e => setSort(e.target.value)} className="admin-input" style={{ minWidth: '140px', width: 'auto' }}>
               <option value="created_at">Sort: Joined</option>
               <option value="name">Sort: Name</option>
               <option value="total_spent">Sort: Spent</option>
               <option value="order_count">Sort: Orders</option>
             </select>
             <button type="button" onClick={() => setSortOrder(o => o === 'desc' ? 'asc' : 'desc')}
-              className="admin-btn admin-btn-outline" style={{ padding: '8px 12px', fontSize: '0.85rem' }}>
+              className="admin-btn admin-btn-outline" style={{ padding: '8px 12px', fontSize: '0.82rem' }}>
               {sortOrder === 'desc' ? '↓ Desc' : '↑ Asc'}
             </button>
           </form>
-          <span style={{ color: '#64748b', fontSize: '0.85rem' }}>
-            Showing {users.length} of {pagination.total}
-          </span>
+          <span className="text-muted" style={{ fontSize: '0.82rem' }}>Showing {users.length} of {pagination.total}</span>
         </div>
 
         {loading ? (
@@ -110,75 +101,57 @@ const AdminUsers = () => {
           <div className="admin-table-container">
             <table className="admin-table">
               <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Joined</th>
-                  <th>Orders</th>
-                  <th>Total Spent</th>
-                  <th>Role</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>User</th><th>Email</th><th>Joined</th><th>Orders</th><th>Total Spent</th><th>Role</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {users.map(user => (
                   <tr key={user.id}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '50%',
-                          background: user.role_name ? '#fce7f3' : '#dbeafe',
-                          color: user.role_name ? '#db2777' : '#2563eb',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem'
+                        <div className="admin-user-avatar" style={{
+                          background: user.role_name ? 'rgba(167,139,250,0.15)' : 'rgba(15,206,220,0.12)',
+                          color: user.role_name ? '#a78bfa' : '#0FCEDC',
                         }}>
                           {user.name?.charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontWeight: 500 }}>{user.name}</span>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.name}</span>
                       </div>
                     </td>
-                    <td style={{ color: '#64748b', fontSize: '0.9rem' }}>{user.email}</td>
-                    <td style={{ color: '#64748b', fontSize: '0.85rem' }}>
+                    <td className="text-muted" style={{ fontSize: '0.88rem' }}>{user.email}</td>
+                    <td className="text-muted" style={{ fontSize: '0.82rem' }}>
                       {new Date(user.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </td>
+                    <td><span className="font-semibold text-primary">{user.order_count}</span></td>
                     <td>
-                      <span style={{ fontWeight: 600, color: '#1e293b' }}>{user.order_count}</span>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600, color: user.total_spent > 0 ? '#059669' : '#94a3b8' }}>
+                      <span className="font-semibold" style={{ color: user.total_spent > 0 ? '#34d399' : 'var(--text-muted)' }}>
                         {parseFloat(user.total_spent) > 0 ? `₹${parseFloat(user.total_spent).toLocaleString('en-IN')}` : '₹0'}
                       </span>
                     </td>
                     <td>
                       {user.role_name ? (
-                        <span className="status-pill" style={{ background: '#dbeafe', color: '#2563eb' }}>{user.role_name}</span>
+                        <span className="status-pill" style={{ background: 'rgba(96,165,250,0.15)', color: '#60a5fa' }}>{user.role_name}</span>
                       ) : (
-                        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>User</span>
+                        <span className="text-muted" style={{ fontSize: '0.82rem' }}>User</span>
                       )}
                     </td>
                     <td>
                       <button onClick={() => openAssignModal(user)} className="admin-btn admin-btn-outline"
-                        style={{ padding: '5px 10px', fontSize: '0.8rem' }}>
+                        style={{ padding: '5px 10px', fontSize: '0.78rem' }}>
                         <MdEdit size={14} /> Role
                       </button>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>No users found.</td></tr>
+                  <tr><td colSpan="7" className="admin-loading-state">No users found.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         )}
 
-        {/* Pagination Controls */}
         {!loading && pagination.total > 0 && (
-          <Pagination
-            currentPage={pagination.page}
-            totalItems={pagination.total}
-            itemsPerPage={pagination.limit}
-            onPageChange={fetchData}
-          />
+          <Pagination currentPage={pagination.page} totalItems={pagination.total} itemsPerPage={pagination.limit} onPageChange={fetchData} />
         )}
       </div>
 
@@ -190,15 +163,15 @@ const AdminUsers = () => {
               <h2>Assign Role</h2>
               <button onClick={() => setAssignModal(null)} className="admin-modal-close">✕</button>
             </div>
-            <div style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', padding: '16px', background: '#f8fafc', borderRadius: '10px' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#dbeafe', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.2rem' }}>
+            <div className="admin-modal-body">
+              <div className="assign-user-card">
+                <div className="admin-user-avatar" style={{ width: '44px', height: '44px', fontSize: '1.1rem', background: 'rgba(15,206,220,0.12)', color: '#0FCEDC' }}>
                   {assignModal.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontWeight: 600, color: '#1e293b' }}>{assignModal.name}</p>
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>{assignModal.email}</p>
-                  <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                  <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>{assignModal.name}</p>
+                  <p className="text-muted" style={{ margin: 0, fontSize: '0.82rem' }}>{assignModal.email}</p>
+                  <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.78rem' }}>
                     {assignModal.order_count} orders · ₹{parseFloat(assignModal.total_spent).toLocaleString('en-IN')} spent
                   </p>
                 </div>
@@ -210,12 +183,10 @@ const AdminUsers = () => {
                   <option value="">— Regular User (No admin access) —</option>
                   {roles.map(r => (<option key={r.id} value={r.id}>{r.name}</option>))}
                 </select>
-                <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '6px' }}>
-                  Assigning a role gives this user access to the admin dashboard.
-                </p>
+                <p className="admin-form-hint">Assigning a role gives this user access to the admin dashboard.</p>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <div className="admin-modal-footer">
                 <button onClick={() => setAssignModal(null)} className="admin-btn admin-btn-outline">Cancel</button>
                 <button onClick={handleAssignRole} className="admin-btn admin-btn-primary" disabled={saving}>
                   {saving ? 'Saving...' : 'Assign Role'}
