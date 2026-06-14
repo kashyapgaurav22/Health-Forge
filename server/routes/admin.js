@@ -76,7 +76,11 @@ router.get('/analytics', checkPermission('view_analytics'), async (req, res) => 
       `);
     }
 
+    const periodLabels = { today: 'Today', '7d': 'Last 7 Days', '30d': 'Last 30 Days', all: 'All Time' };
+
     res.json({
+      period,
+      periodLabel: periodLabels[period] || 'All Time',
       revenue: parseFloat(totalRevenueQuery.rows[0].total),
       totalOrders: parseInt(totalOrdersQuery.rows[0].count),
       activeOrders: parseInt(activeOrdersQuery.rows[0].count),
@@ -409,7 +413,14 @@ router.put('/users/:id/role', checkPermission('manage_users'), async (req, res) 
 // ==========================================
 router.get('/roles', checkPermission('manage_roles'), async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM roles ORDER BY created_at DESC');
+    const result = await pool.query(`
+      SELECT r.*, COALESCE(uc.user_count, 0)::INTEGER as user_count
+      FROM roles r
+      LEFT JOIN (
+        SELECT role_id, COUNT(*) as user_count FROM users WHERE role_id IS NOT NULL GROUP BY role_id
+      ) uc ON r.id = uc.role_id
+      ORDER BY r.created_at DESC
+    `);
     res.json(result.rows);
   } catch (error) {
     console.error('Fetch roles error:', error);

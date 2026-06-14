@@ -3,7 +3,7 @@ import api from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { MdTrendingUp, MdShoppingCart, MdInventory, MdWarning, MdPeople, MdReceipt } from 'react-icons/md';
+import { MdTrendingUp, MdShoppingCart, MdInventory, MdWarning, MdPeople, MdReceipt, MdSchedule } from 'react-icons/md';
 import './AdminPages.css';
 
 const PERIODS = [
@@ -14,12 +14,12 @@ const PERIODS = [
 ];
 
 const STAT_CONFIG = [
-  { key: 'revenue', icon: MdTrendingUp, color: '#0FCEDC', label: 'Revenue', format: v => `₹${v?.toLocaleString('en-IN') || 0}` },
-  { key: 'totalOrders', icon: MdReceipt, color: '#a78bfa', label: 'Total Orders', format: v => v || 0 },
-  { key: 'activeOrders', icon: MdShoppingCart, color: '#34d399', label: 'Active Orders', format: v => v || 0 },
-  { key: 'totalProducts', icon: MdInventory, color: '#fbbf24', label: 'Products', format: v => v || 0 },
-  { key: 'lowStock', icon: MdWarning, color: '#f87171', label: 'Low Stock', format: v => v || 0 },
-  { key: 'totalUsers', icon: MdPeople, color: '#38bdf8', label: 'Total Users', format: v => v || 0 },
+  { key: 'revenue', icon: MdTrendingUp, color: '#0FCEDC', label: 'Revenue', format: v => `₹${(v || 0).toLocaleString('en-IN')}`, filtered: true },
+  { key: 'totalOrders', icon: MdReceipt, color: '#a78bfa', label: 'Total Orders', format: v => v || 0, filtered: true },
+  { key: 'activeOrders', icon: MdShoppingCart, color: '#34d399', label: 'Active Orders', format: v => v || 0, filtered: true },
+  { key: 'totalProducts', icon: MdInventory, color: '#fbbf24', label: 'Products', format: v => v || 0, filtered: false },
+  { key: 'lowStock', icon: MdWarning, color: '#f87171', label: 'Low Stock', format: v => v || 0, filtered: false },
+  { key: 'totalUsers', icon: MdPeople, color: '#38bdf8', label: 'Total Users', format: v => v || 0, filtered: false },
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -32,7 +32,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       <p style={{ margin: '0 0 6px', color: '#9CA3AF', fontSize: '0.8rem' }}>{label}</p>
       {payload.map((entry, i) => (
         <p key={i} style={{ margin: '2px 0', color: entry.color, fontSize: '0.88rem', fontWeight: 600 }}>
-          {entry.name}: {entry.name === 'Revenue' ? `₹${parseFloat(entry.value).toLocaleString('en-IN')}` : entry.value}
+          {entry.name}: {entry.name === 'Revenue' ? `₹${parseFloat(entry.value || 0).toLocaleString('en-IN')}` : entry.value}
         </p>
       ))}
     </div>
@@ -43,14 +43,17 @@ const AdminAnalytics = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState('30d');
+  const [error, setError] = useState(null);
 
   const fetchAnalytics = async (p) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.get(`/admin/analytics?period=${p}`);
       setData(response.data);
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
+    } catch (err) {
+      console.error('Error fetching analytics:', err);
+      setError('Failed to load analytics. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -59,7 +62,10 @@ const AdminAnalytics = () => {
   useEffect(() => { fetchAnalytics(period); }, [period]);
 
   if (loading && !data) return <div className="admin-loading-state">Loading analytics...</div>;
+  if (error && !data) return <div className="admin-loading-state" style={{ color: 'var(--error)' }}>{error}</div>;
   if (!data) return <div className="admin-loading-state">Failed to load analytics data.</div>;
+
+  const isFiltered = period !== 'all';
 
   return (
     <div>
@@ -84,8 +90,15 @@ const AdminAnalytics = () => {
             <div className="admin-stat-icon" style={{ background: `${stat.color}15`, color: stat.color }}>
               <stat.icon size={26} />
             </div>
-            <div>
-              <p className="admin-stat-label">{stat.label}</p>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <p className="admin-stat-label">{stat.label}</p>
+                {isFiltered && !stat.filtered && (
+                  <span className="stat-scope-badge">
+                    <MdSchedule size={10} /> All Time
+                  </span>
+                )}
+              </div>
               <p className="admin-stat-value">{stat.format(data[stat.key])}</p>
             </div>
           </div>
@@ -104,7 +117,7 @@ const AdminAnalytics = () => {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 12 }}
-                  tickFormatter={(v) => `₹${v >= 1000 ? (v/1000).toFixed(1) + 'k' : v}`} />
+                  tickFormatter={(v) => v === 0 ? '₹0' : `₹${v >= 1000 ? (v/1000).toFixed(1) + 'k' : v}`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(15,206,220,0.04)' }} />
                 <Legend wrapperStyle={{ color: '#9CA3AF', fontSize: '0.85rem' }} />
                 <Bar dataKey="revenue" name="Revenue" fill="#0FCEDC" radius={[6, 6, 0, 0]} />
@@ -112,8 +125,20 @@ const AdminAnalytics = () => {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-muted)' }}>
-              No revenue data for this period
+            <div className="chart-empty-state">
+              <div className="chart-empty-icon">
+                <MdTrendingUp size={48} />
+              </div>
+              <p className="chart-empty-title">No revenue data</p>
+              <p className="chart-empty-desc">
+                {period === 'today'
+                  ? 'No paid orders recorded today yet.'
+                  : period === '7d'
+                  ? 'No paid orders in the last 7 days.'
+                  : period === '30d'
+                  ? 'No paid orders in the last 30 days.'
+                  : 'No paid orders recorded yet. Revenue will appear here once orders are completed.'}
+              </p>
             </div>
           )}
         </div>

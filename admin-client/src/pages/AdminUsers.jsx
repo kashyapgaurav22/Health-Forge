@@ -112,9 +112,9 @@ const AdminUsers = () => {
                           background: user.role_name ? 'rgba(167,139,250,0.15)' : 'rgba(15,206,220,0.12)',
                           color: user.role_name ? '#a78bfa' : '#0FCEDC',
                         }}>
-                          {user.name?.charAt(0).toUpperCase()}
+                          {(user.name || 'U').charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.name}</span>
+                        <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{user.name || 'Unknown'}</span>
                       </div>
                     </td>
                     <td className="text-muted" style={{ fontSize: '0.88rem' }}>{user.email}</td>
@@ -124,7 +124,7 @@ const AdminUsers = () => {
                     <td><span className="font-semibold text-primary">{user.order_count}</span></td>
                     <td>
                       <span className="font-semibold" style={{ color: user.total_spent > 0 ? '#34d399' : 'var(--text-muted)' }}>
-                        {parseFloat(user.total_spent) > 0 ? `₹${parseFloat(user.total_spent).toLocaleString('en-IN')}` : '₹0'}
+                        {parseFloat(user.total_spent || 0) > 0 ? `₹${parseFloat(user.total_spent || 0).toLocaleString('en-IN')}` : '₹0'}
                       </span>
                     </td>
                     <td>
@@ -166,13 +166,13 @@ const AdminUsers = () => {
             <div className="admin-modal-body">
               <div className="assign-user-card">
                 <div className="admin-user-avatar" style={{ width: '44px', height: '44px', fontSize: '1.1rem', background: 'rgba(15,206,220,0.12)', color: '#0FCEDC' }}>
-                  {assignModal.name?.charAt(0).toUpperCase()}
+                  {(assignModal.name || 'U').charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>{assignModal.name}</p>
+                  <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>{assignModal.name || 'Unknown'}</p>
                   <p className="text-muted" style={{ margin: 0, fontSize: '0.82rem' }}>{assignModal.email}</p>
                   <p className="text-muted" style={{ margin: '4px 0 0', fontSize: '0.78rem' }}>
-                    {assignModal.order_count} orders · ₹{parseFloat(assignModal.total_spent).toLocaleString('en-IN')} spent
+                    {assignModal.order_count || 0} orders · ₹{parseFloat(assignModal.total_spent || 0).toLocaleString('en-IN')} spent
                   </p>
                 </div>
               </div>
